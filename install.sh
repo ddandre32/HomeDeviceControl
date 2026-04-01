@@ -1,5 +1,6 @@
 #!/bin/bash
 # Home Device Control Skill 安装脚本
+# 整合 miot SDK，提供完整的智能家居控制
 
 set -e
 
@@ -17,47 +18,48 @@ fi
 
 echo "✅ Python 版本检查通过: $PYTHON_VERSION"
 
-# 检查并安装 XMIoT
-if ! command -v miot &> /dev/null; then
-    echo "📦 安装 XMIoT CLI..."
-    
-    XMIOT_DIR="${HOME}/Documents/openclaw_lab/xiaomi_iot_new"
-    if [ ! -d "$XMIOT_DIR" ]; then
-        git clone --depth 1 -b master https://github.com/ddandre32/XMIoT.git "$XMIOT_DIR"
-    fi
-    
-    cd "$XMIOT_DIR"
-    pip install -e "."
-    
-    echo "✅ XMIoT 安装完成"
-else
-    echo "✅ XMIoT 已安装"
-fi
+# 获取脚本所在目录
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# 安装依赖
+echo "📦 安装依赖..."
+pip install -q aiohttp cryptography pycryptodome click pyyaml
 
 # 安装 Skill
 echo "📦 安装 Home Device Control Skill..."
-SKILL_DIR="${HOME}/Documents/openclaw_lab/skills/HomeDeviceControl"
-OPENCLAW_SKILL_DIR="${HOME}/.openclaw/skills/smart-home"
+cd "$SCRIPT_DIR"
+pip install -e "."
 
-if [ -d "$SKILL_DIR" ]; then
-    mkdir -p "$OPENCLAW_SKILL_DIR"
-    cp -r "$SKILL_DIR"/* "$OPENCLAW_SKILL_DIR/"
-    echo "✅ Skill 已安装到: $OPENCLAW_SKILL_DIR"
-else
-    echo "⚠️  Skill 目录不存在: $SKILL_DIR"
-    exit 1
+# 创建配置目录
+mkdir -p ~/.home-device-control
+mkdir -p ~/.miot/cache
+
+# 复制默认配置
+if [ ! -f ~/.miot/config.json ]; then
+    echo "📝 创建默认配置..."
+    cat > ~/.miot/config.json << 'EOF'
+{
+  "uuid": null,
+  "redirect_uri": "https://mico.api.mijia.tech/login_redirect",
+  "cache_path": "~/.miot/cache",
+  "cloud_server": "cn",
+  "oauth_info": null,
+  "format": null
+}
+EOF
 fi
 
 echo ""
 echo "🎉 安装完成！"
 echo ""
-echo "下一步:"
-echo "1. 运行 'python3 /Users/Laura/Documents/openclaw_lab/skills/HomeDeviceControl/doctor.py' 检查渠道状态"
-echo "2. 运行 'miot system oauth-url' 获取小米授权链接"
-echo "3. 获取授权码后运行 'miot system auth <code>'"
+echo "使用说明:"
+echo "  1. 运行 'home-device doctor' 检查状态"
+echo "  2. 运行 'home-device auth' 完成小米认证"
+echo "  3. 运行 'home-device list' 列出设备"
+echo "  4. 运行 'home-device control <device_id> turn_on' 控制设备"
 echo ""
-echo "使用示例:"
-echo "  python3 cli.py list-devices"
-echo "  python3 cli.py control <device_id> turn_on"
-echo "  python3 cli.py execute-scene <scene_id>"
+echo "或使用 Python API:"
+echo "  from channels import get_channel"
+echo "  xiaomi = get_channel('xiaomi')"
+echo "  devices = xiaomi.list_devices()"
 echo ""

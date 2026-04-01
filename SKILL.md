@@ -6,7 +6,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| name | smart-home |
+| name | home-device-control |
 | version | 2.0.0 |
 | description | 控制智能家居设备的原子工具，支持多品牌渠道 |
 
@@ -21,22 +21,44 @@
 ## Quick Start
 
 ```bash
+# 安装
+./install.sh
+
+# 认证
+home-device oauth-url
+# 访问 URL，登录账号，获取授权码
+home-device auth <授权码>
+
 # 列出设备
-miot device list
+home-device list
 
 # 控制设备
-miot device prop set <device_id> <siid> <piid> <value>
-
-# 执行场景
-miot scene run <scene_id>
+home-device control <device_id> turn_on
+home-device control <device_id> turn_off
 ```
 
 ## 支持的渠道
 
-| 渠道 | CLI 命令 | 状态 |
-|------|---------|------|
-| 小米 | `miot` | 需配置 |
-| 海尔 | `haier-cli` | 预留 |
+| 渠道 | 状态 | 说明 |
+|------|------|------|
+| 小米 | ✅ 可用 | 通过 miot SDK |
+| 海尔 | ⚠️ 预留 | 待实现 |
+
+## 安装
+
+### 方法 1: 直接安装（推荐）
+
+```bash
+git clone https://github.com/ddandre32/HomeDeviceControl.git
+cd HomeDeviceControl
+./install.sh
+```
+
+### 方法 2: pip 安装
+
+```bash
+pip install git+https://github.com/ddandre32/HomeDeviceControl.git
+```
 
 ## 配置
 
@@ -44,19 +66,19 @@ miot scene run <scene_id>
 
 ```bash
 # 获取授权 URL
-miot system oauth-url
+home-device oauth-url
 
 # 访问 URL，登录账号，获取授权码
 
 # 完成认证
-miot system auth <授权码>
+home-device auth <授权码>
 ```
 
 ## 诊断
 
 ```bash
 # 检查渠道状态
-python3 doctor.py
+home-device doctor
 ```
 
 ## 说明
@@ -66,6 +88,21 @@ python3 doctor.py
 - Agent 直接调用上述 CLI 命令即可
 - 设备匹配、意图理解由 Agent/LLM 负责
 
+## Python API
+
+```python
+from channels import get_channel
+
+# 获取小米渠道
+xiaomi = get_channel("xiaomi")
+
+# 列出设备
+devices = xiaomi.list_devices()
+
+# 控制设备
+result = xiaomi.control_device("light_001", "turn_on")
+```
+
 ## 参考
 
-- 小米 CLI 文档: https://github.com/ddandre32/XMIoT
+- GitHub: https://github.com/ddandre32/HomeDeviceControl

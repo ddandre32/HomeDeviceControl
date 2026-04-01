@@ -1,21 +1,33 @@
 """
 小米智能家居渠道
-封装 miot CLI，提供原子操作
+封装 miot SDK，提供原子操作
 """
 
-import subprocess
+import sys
+import os
+import asyncio
 import json
-import shutil
 from typing import Dict, List, Optional, Any
 
+# 添加 miot 到路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from .base import SmartHomeChannel, ChannelStatus, Device, Scene
+
+# 导入 miot SDK
+try:
+    from miot_sdk import MIoTClient
+    from miot_sdk.error import MIoTError
+    MIOT_AVAILABLE = True
+except ImportError:
+    MIOT_AVAILABLE = False
 
 
 class XiaomiChannel(SmartHomeChannel):
     """
     小米智能家居渠道
     
-    基于 XMIoT CLI 封装，只提供原子操作
+    基于 XMIoT SDK 封装，只提供原子操作
     """
     
     name = "xiaomi"
@@ -24,43 +36,23 @@ class XiaomiChannel(SmartHomeChannel):
     
     def __init__(self, timeout: int = 30):
         self.timeout = timeout
+        self._client = None
     
-    def _run(self, args: List[str]) -> Dict[str, Any]:
-        """
-        运行 miot CLI 命令
-        
-        Args:
-            args: 命令参数
-            
-        Returns:
-            Dict: 命令输出
-        """
-        cmd = [self.cli_command, "--format", "json"] + args
-        
+    def _get_client(self) -> Optional[MIoTClient]:
+        """获取 MIoT 客户端"""
+        if not MIOT_AVAILABLE:
+            return None
+        if self._client is None:
+            try:
+                self._client = MIoTClient()
+            except Exception:
+                return None
+        return self._client
+    
+    def _run_async(self, coro):
+        """运行异步代码"""
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=self.timeout,
-                check=False
-            )
-            
-            if result.stdout:
-                try:
-                    return json.loads(result.stdout)
-                except json.JSONDecodeError:
-                    return {"success": False, "error": "Failed to parse output"}
-            
-            if result.stderr:
-                return {"success": False, "error": result.stderr.strip()}
-            
-            return {"success": False, "error": "No output"}
-            
-        except subprocess.TimeoutExpired:
-            return {"success": False, "error": f"Timeout after {self.timeout}s"}
-        except FileNotFoundError:
-            return {"success": False, "error": "miot not found"}
+            return asyncio.run(coro)
         except Exception as e:
             return {"success": False, "error": str(e)}
     
@@ -69,44 +61,52 @@ class XiaomiChannel(SmartHomeChannel):
         检查小米渠道状态
         
         Returns:
-            ChannelStatus: 渠道状态
+            ChannelStatus: 渠道可用性和配置状态
         """
-        # 检查 miot 是否安装
-        if not shutil.which(self.cli_command):
+        if not MIOT_AVAILABLE:
             return ChannelStatus(
                 name=self.name,
                 available=False,
                 configured=False,
-                message="miot CLI 未安装",
-                suggestion="运行: pip install xiaomi-iot-manager"
+                message="miot SDK 未安装",
+                suggestion="运行: pip install -e ."
             )
         
-        # 检查是否已认证
-        result = self._run(["device", "list"])
-        if not result.get("success"):
-            error = result.get("error", "")
-            if "NOT_AUTHENTICATED" in str(error) or "未认证" in str(error):
+        try:
+            client = self._get_client()
+            if not client:
+                return ChannelStatus(
+                    name=self.name,
+                    available=False,
+                    configured=False,
+                    message="无法初始化 miot 客户端",
+                    suggestion="检查配置文件 ~/.miot/config.json"
+                )
+            
+            # 检查是否已认证
+            if hasattr(client, '_oauth_info') and client._oauth_info:
+                return ChannelStatus(
+                    name=self.name,
+                    available=True,
+                    configured=True,
+                    message="可用"
+                )
+            else:
                 return ChannelStatus(
                     name=self.name,
                     available=True,
                     configured=False,
                     message="未认证",
-                    suggestion="运行: miot system oauth-url 获取授权链接"
+                    suggestion="运行: home-device auth 完成认证"
                 )
+        except Exception as e:
             return ChannelStatus(
                 name=self.name,
-                available=True,
+                available=False,
                 configured=False,
-                message=f"检查失败: {error}",
+                message=f"检查失败: {str(e)[:50]}",
                 suggestion="检查网络连接或重新认证"
             )
-        
-        return ChannelStatus(
-            name=self.name,
-            available=True,
-            configured=True,
-            message="可用"
-        )
     
     def configure(self) -> bool:
         """
@@ -115,15 +115,12 @@ class XiaomiChannel(SmartHomeChannel):
         Returns:
             bool: 配置是否成功
         """
-        # 输出配置指引
         print("小米智能家居配置")
         print("==================")
-        print("1. 运行: miot system oauth-url")
+        print("1. 运行: home-device oauth-url")
         print("2. 访问输出的 URL，登录小米账号")
-        print("3. 获取授权码后运行: miot system auth <授权码>")
+        print("3. 获取授权码后运行: home-device auth <授权码>")
         print("")
-        
-        # 实际配置需要用户手动完成
         return False
     
     def list_devices(self) -> List[Device]:
@@ -133,25 +130,34 @@ class XiaomiChannel(SmartHomeChannel):
         Returns:
             List[Device]: 设备列表
         """
-        result = self._run(["device", "list"])
-        
-        if not result.get("success"):
+        if not MIOT_AVAILABLE:
             return []
         
-        devices = []
-        for item in result.get("data", []):
-            device = Device(
-                id=item.get("did", ""),
-                name=item.get("name", "Unknown"),
-                type=self._infer_type(item.get("model", "")),
-                brand=self.name,
-                room=item.get("room", {}).get("name") if isinstance(item.get("room"), dict) else None,
-                online=item.get("online", False),
-                model=item.get("model")
-            )
-            devices.append(device)
+        client = self._get_client()
+        if not client:
+            return []
         
-        return devices
+        try:
+            result = self._run_async(client.get_devices())
+            if not isinstance(result, dict) or not result.get("success", True):
+                return []
+            
+            devices = []
+            for did, info in result.items():
+                if isinstance(info, dict):
+                    device = Device(
+                        id=did,
+                        name=info.get("name", "Unknown"),
+                        type=self._infer_type(info.get("model", "")),
+                        brand=self.name,
+                        room=info.get("room_name"),
+                        online=info.get("online", False),
+                        model=info.get("model")
+                    )
+                    devices.append(device)
+            return devices
+        except Exception:
+            return []
     
     def get_device(self, device_id: str) -> Optional[Device]:
         """
@@ -163,21 +169,11 @@ class XiaomiChannel(SmartHomeChannel):
         Returns:
             Optional[Device]: 设备信息
         """
-        result = self._run(["device", "get", device_id])
-        
-        if not result.get("success"):
-            return None
-        
-        item = result.get("data", {})
-        return Device(
-            id=item.get("did", device_id),
-            name=item.get("name", "Unknown"),
-            type=self._infer_type(item.get("model", "")),
-            brand=self.name,
-            room=item.get("room", {}).get("name") if isinstance(item.get("room"), dict) else None,
-            online=item.get("online", False),
-            model=item.get("model")
-        )
+        devices = self.list_devices()
+        for device in devices:
+            if device.id == device_id:
+                return device
+        return None
     
     def control_device(self, device_id: str, action: str, value: Any = None) -> Dict[str, Any]:
         """
@@ -191,19 +187,31 @@ class XiaomiChannel(SmartHomeChannel):
         Returns:
             Dict: 操作结果
         """
-        # 动作映射到 miot 命令
-        action_map = {
-            "turn_on": ("prop", "set", device_id, "2", "1", "true"),
-            "turn_off": ("prop", "set", device_id, "2", "1", "false"),
-            "set_brightness": ("prop", "set", device_id, "2", "2", str(value)) if value else None,
-            "set_temperature": ("prop", "set", device_id, "2", "2", str(value)) if value else None,
-        }
+        if not MIOT_AVAILABLE:
+            return {"success": False, "error": "miot SDK not available"}
         
-        args = action_map.get(action)
-        if not args:
-            return {"success": False, "error": f"Unknown action: {action}"}
+        client = self._get_client()
+        if not client:
+            return {"success": False, "error": "client not initialized"}
         
-        return self._run(["device"] + list(args))
+        try:
+            # 动作映射
+            if action == "turn_on":
+                result = self._run_async(client.set_prop(device_id, 2, 1, True))
+            elif action == "turn_off":
+                result = self._run_async(client.set_prop(device_id, 2, 1, False))
+            elif action == "set_brightness":
+                result = self._run_async(client.set_prop(device_id, 2, 2, value))
+            elif action == "set_temperature":
+                result = self._run_async(client.set_prop(device_id, 2, 2, value))
+            else:
+                return {"success": False, "error": f"Unknown action: {action}"}
+            
+            if isinstance(result, dict):
+                return result
+            return {"success": True, "data": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     
     def list_scenes(self) -> List[Scene]:
         """
@@ -212,21 +220,30 @@ class XiaomiChannel(SmartHomeChannel):
         Returns:
             List[Scene]: 场景列表
         """
-        result = self._run(["scene", "list"])
-        
-        if not result.get("success"):
+        if not MIOT_AVAILABLE:
             return []
         
-        scenes = []
-        for item in result.get("data", []):
-            scene = Scene(
-                id=item.get("scene_id", ""),
-                name=item.get("scene_name", "Unknown"),
-                enabled=item.get("enabled", False)
-            )
-            scenes.append(scene)
+        client = self._get_client()
+        if not client:
+            return []
         
-        return scenes
+        try:
+            result = self._run_async(client.get_scenes())
+            if not isinstance(result, dict):
+                return []
+            
+            scenes = []
+            for scene_id, info in result.items():
+                if isinstance(info, dict):
+                    scene = Scene(
+                        id=str(scene_id),
+                        name=info.get("name", "Unknown"),
+                        enabled=info.get("enabled", True)
+                    )
+                    scenes.append(scene)
+            return scenes
+        except Exception:
+            return []
     
     def execute_scene(self, scene_id: str) -> Dict[str, Any]:
         """
@@ -238,7 +255,20 @@ class XiaomiChannel(SmartHomeChannel):
         Returns:
             Dict: 执行结果
         """
-        return self._run(["scene", "run", scene_id])
+        if not MIOT_AVAILABLE:
+            return {"success": False, "error": "miot SDK not available"}
+        
+        client = self._get_client()
+        if not client:
+            return {"success": False, "error": "client not initialized"}
+        
+        try:
+            result = self._run_async(client.run_scene(scene_id))
+            if isinstance(result, dict):
+                return result
+            return {"success": True, "data": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     
     def _infer_type(self, model: str) -> str:
         """
@@ -259,6 +289,7 @@ class XiaomiChannel(SmartHomeChannel):
             "air_conditioner": ["air", "空调", "ac"],
             "purifier": ["purifier", "净化器"],
             "speaker": ["speaker", "音箱"],
+            "camera": ["camera", "摄像头"],
         }
         
         for device_type, keywords in type_keywords.items():
