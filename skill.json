@@ -1,0 +1,98 @@
+{
+  "name": "home-device-control",
+  "version": "2.0.0",
+  "description": "控制智能家居设备的原子工具，支持小米、海尔等多品牌",
+  "author": "OpenClaw",
+  "license": "MIT",
+  "tools": [
+    {
+      "name": "list_devices",
+      "description": "列出所有智能家居设备",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "渠道名称 (xiaomi/haier)，不指定则查询所有",
+            "default": null
+          }
+        }
+      }
+    },
+    {
+      "name": "control_device",
+      "description": "控制设备（原子操作：开关、调节等）",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "渠道名称",
+            "default": "xiaomi"
+          },
+          "device_id": {
+            "type": "string",
+            "description": "设备ID"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["turn_on", "turn_off", "set_brightness", "set_temperature"],
+            "description": "动作"
+          },
+          "value": {
+            "type": ["number", "string"],
+            "description": "参数值",
+            "default": null
+          }
+        },
+        "required": ["device_id", "action"]
+      }
+    },
+    {
+      "name": "list_scenes",
+      "description": "列出所有智能场景",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "渠道名称",
+            "default": "xiaomi"
+          }
+        }
+      }
+    },
+    {
+      "name": "execute_scene",
+      "description": "执行智能场景",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "渠道名称",
+            "default": "xiaomi"
+          },
+          "scene_id": {
+            "type": "string",
+            "description": "场景ID"
+          }
+        },
+        "required": ["scene_id"]
+      }
+    },
+    {
+      "name": "check_channels",
+      "description": "检查所有渠道状态",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "entry": "channels/__init__.py",
+  "config": {
+    "default_channel": "xiaomi",
+    "timeout": 30
+  }
+}
