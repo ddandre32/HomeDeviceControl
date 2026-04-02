@@ -16,10 +16,10 @@ from .base import SmartHomeChannel, ChannelStatus, Device, Scene
 
 # 导入 miot SDK
 try:
-    from miot_sdk import MIoTClient
-    from miot_sdk.error import MIoTError
+    from miot import MIoTClient
+    from miot.error import MIoTError
     MIOT_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     MIOT_AVAILABLE = False
 
 
@@ -44,16 +44,58 @@ class XiaomiChannel(SmartHomeChannel):
             return None
         if self._client is None:
             try:
-                self._client = MIoTClient()
-            except Exception:
+                # 从配置文件读取
+                import json
+                import os
+                config_path = os.path.expanduser("~/.miot/config.json")
+                if not os.path.exists(config_path):
+                    return None
+                
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                
+                uuid = config.get('uuid')
+                redirect_uri = config.get('redirect_uri')
+                cache_path = config.get('cache_path')
+                cloud_server = config.get('cloud_server', 'cn')
+                oauth_info = config.get('oauth_info')
+                
+                if not uuid or not redirect_uri:
+                    return None
+                
+                self._client = MIoTClient(
+                    uuid=uuid,
+                    redirect_uri=redirect_uri,
+                    cache_path=cache_path,
+                    cloud_server=cloud_server,
+                    oauth_info=oauth_info
+                )
+            except Exception as e:
+                print(f"初始化客户端失败: {e}")
                 return None
         return self._client
     
     def _run_async(self, coro):
         """运行异步代码"""
         try:
-            return asyncio.run(coro)
+            # 获取或创建事件循环
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # 如果循环正在运行，使用 run_coroutine_threadsafe
+            if loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, coro)
+                    return future.result(timeout=30)
+            else:
+                return loop.run_until_complete(coro)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return {"success": False, "error": str(e)}
     
     def check(self) -> ChannelStatus:
@@ -137,14 +179,32 @@ class XiaomiChannel(SmartHomeChannel):
         if not client:
             return []
         
-        try:
-            result = self._run_async(client.get_devices())
-            if not isinstance(result, dict) or not result.get("success", True):
-                return []
+        async def _get_devices():
+            """获取设备列表"""
+            # 初始化客户端
+            await client.init()
             
-            devices = []
-            for did, info in result.items():
-                if isinstance(info, dict):
+            # 获取设备列表
+            devices = await client.get_devices()
+            
+            # 转换为 Device 对象列表
+            device_list = []
+            for did, info in devices.items():
+                # 处理 MIoTDeviceInfo 对象
+                if hasattr(info, 'name'):
+                    # 是 MIoTDeviceInfo 对象
+                    device = Device(
+                        id=did,
+                        name=info.name,
+                        type=self._infer_type(getattr(info, 'model', '')),
+                        brand=self.name,
+                        room=getattr(info, 'room_name', None),
+                        online=getattr(info, 'online', False),
+                        model=getattr(info, 'model', None)
+                    )
+                    device_list.append(device)
+                elif isinstance(info, dict):
+                    # 是字典
                     device = Device(
                         id=did,
                         name=info.get("name", "Unknown"),
@@ -154,8 +214,21 @@ class XiaomiChannel(SmartHomeChannel):
                         online=info.get("online", False),
                         model=info.get("model")
                     )
-                    devices.append(device)
-            return devices
+                    device_list.append(device)
+            return device_list
+        
+        try:
+            result = self._run_async(_get_devices())
+            # 检查是否是错误返回
+            if isinstance(result, dict) and "error" in result:
+                print(f"获取设备列表失败: {result['error']}")
+                return []
+            return result
+        except Exception as e:
+            print(f"获取设备列表失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
         except Exception:
             return []
     
@@ -194,22 +267,55 @@ class XiaomiChannel(SmartHomeChannel):
         if not client:
             return {"success": False, "error": "client not initialized"}
         
-        try:
+        async def _do_control():
+            """执行控制"""
+            # 初始化客户端
+            await client.init()
+            
             # 动作映射
             if action == "turn_on":
-                result = self._run_async(client.set_prop(device_id, 2, 1, True))
+                # 灯的开关: service_id=2, property_id=1 (on)
+                result = await client.set_prop(device_id, 2, 1, True)
             elif action == "turn_off":
-                result = self._run_async(client.set_prop(device_id, 2, 1, False))
+                # 灯的开关: service_id=2, property_id=1 (on)
+                result = await client.set_prop(device_id, 2, 1, False)
             elif action == "set_brightness":
-                result = self._run_async(client.set_prop(device_id, 2, 2, value))
+                # 亮度: service_id=2, property_id=2 (brightness)
+                result = await client.set_prop(device_id, 2, 2, int(value))
             elif action == "set_temperature":
-                result = self._run_async(client.set_prop(device_id, 2, 2, value))
+                # 温度: service_id=2, property_id=2 (temperature)
+                result = await client.set_prop(device_id, 2, 2, int(value))
+            elif action == "speaker_pause":
+                # 音箱暂停: service_id=3, action_id=2
+                result = await client.action(device_id, 3, 2, [])
+            elif action == "speaker_next":
+                # 音箱下一首: service_id=3, action_id=3
+                result = await client.action(device_id, 3, 3, [])
+            elif action == "speaker_previous":
+                # 音箱上一首: service_id=3, action_id=4
+                result = await client.action(device_id, 3, 4, [])
+            elif action == "voice_command":
+                # 语音指令: service_id=7, action_id=3
+                # 注意：这会让音箱播报文字，不是执行指令
+                result = await client.action(device_id, 7, 3, [str(value)] if value else [])
             else:
                 return {"success": False, "error": f"Unknown action: {action}"}
             
-            if isinstance(result, dict):
+            return result
+        
+        try:
+            result = self._run_async(_do_control())
+            
+            if isinstance(result, dict) and "code" in result:
+                # MIoT 返回格式
+                if result.get("code") == 0:
+                    return {"success": True, "data": result}
+                else:
+                    return {"success": False, "error": f"Error code: {result.get('code')}"}
+            elif isinstance(result, dict) and "success" in result:
                 return result
-            return {"success": True, "data": result}
+            else:
+                return {"success": True, "data": result}
         except Exception as e:
             return {"success": False, "error": str(e)}
     

@@ -258,12 +258,19 @@ class MIoTHttpClient:
         self, url_path: str, data: Dict, timeout: int = MIHOME_HTTP_API_TIMEOUT
     ) -> Dict:
         """POST请求"""
+        import ssl
+        # 创建 SSL 上下文，允许跳过验证（仅用于测试）
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 url=f"{self._base_url}{url_path}",
                 data=self.aes_encrypt_with_b64(data),
                 headers=self._api_request_headers,
                 timeout=aiohttp.ClientTimeout(total=timeout),
+                ssl=ssl_context,
             ) as response:
                 if response.status == 401:
                     raise MIoTHttpError(
