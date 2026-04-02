@@ -17,6 +17,8 @@ setup(
     include_package_data=True,
     install_requires=[
         "aiohttp>=3.8.0",
+        "aiohttp-cors>=0.7.0",
+        "aiofiles>=0.8.0",
         "cryptography>=3.0",
         "pycryptodome>=3.15.0",
         "click>=8.0",

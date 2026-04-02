@@ -11,12 +11,71 @@
 - ✅ 语音指令发送
 - ✅ 场景执行
 - ✅ 多格式输出（人类可读 / JSON）
+- ✅ 🆕 **智能家居地图** - 可视化户型图，拖拽设备到房间位置
+- ✅ 🆕 **Web 界面** - 浏览器中管理设备和查看实时状态
 
 ## 安装
 
 ```bash
 pip install git+https://github.com/ddandre32/HomeDeviceControl.git
 ```
+
+## 智能家居地图 (Web 界面)
+
+启动可视化 Web 界面，在浏览器中管理您的智能家居设备。
+
+### 启动 Web 服务器
+
+```bash
+# 默认启动（端口 8080）
+home-device web
+
+# 指定端口
+home-device web --port 3000
+
+# 仅本地访问
+home-device web --host 127.0.0.1
+```
+
+启动后打开浏览器访问 `http://localhost:8080`
+
+### 功能特性
+
+1. **多家庭支持**
+   - 切换不同家庭/公司
+   - 每个家庭独立的户型图
+
+2. **户型图编辑**
+   - 点击"编辑模式"进入编辑
+   - 添加房间并调整大小和位置
+   - 右键房间可重命名或删除
+
+3. **设备位置管理**
+   - 从左侧设备列表拖拽设备到房间
+   - 设备在地图上以图标形式展示
+   - 绿色表示开启，灰色表示关闭
+
+4. **实时状态显示**
+   - 设备在线/离线状态
+   - 灯具开关状态
+   - 亮度值实时更新
+
+5. **设备控制**
+   - 点击地图上的设备图标
+   - 在右侧面板中开关设备
+   - 调节灯光亮度
+   - 控制音箱播放
+
+### 使用步骤
+
+1. 启动 Web 服务器：`home-device web`
+2. 浏览器访问 `http://localhost:8080`
+3. 选择您的家庭
+4. 点击"编辑模式"
+5. 添加房间并调整布局
+6. 拖拽设备到对应房间位置
+7. 点击"保存"
+8. 退出编辑模式，查看实时状态
 
 ## 快速开始
 
@@ -61,6 +120,7 @@ home-device --yes control <speaker_id> speaker_pause
 | `execute-scene` | 执行场景 | `home-device execute-scene <id>` |
 | `check` | 检查状态 | `home-device check` |
 | `doctor` | 诊断问题 | `home-device doctor` |
+| `web` | 启动 Web 界面 | `home-device web --port 8080` |
 
 ## 支持的动作
 

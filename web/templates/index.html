@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能家居地图 - Home Device Control</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">🏠</div>
+                <span class="logo-name">智能家居地图</span>
+            </div>
+            <div class="scene-buttons">
+                <button class="scene-btn" data-scene="morning">☀️ 早上好</button>
+                <button class="scene-btn" data-scene="night">🌙 晚安</button>
+                <button class="scene-btn" data-scene="movie">🎬 电影</button>
+                <button class="scene-btn" data-scene="away">🏃 离家</button>
+            </div>
+            <div class="header-controls">
+                <select id="homeSelect" class="home-select">
+                    <option value="">选择家庭...</option>
+                </select>
+                <button id="editModeBtn" class="btn btn-secondary">✏️ 编辑</button>
+                <button id="generateBtn" class="btn btn-primary">🏗️ 生成户型</button>
+                <button id="saveBtn" class="btn btn-success" style="display:none;">💾 保存</button>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <div class="main">
+            <!-- 左侧设备列表面板 -->
+            <aside class="panel-left">
+                <div class="panel-header">
+                    <h3>📱 设备</h3>
+                    <select id="deviceFilter" class="device-filter">
+                        <option value="all">所有设备</option>
+                        <option value="light">💡 灯光</option>
+                        <option value="ac">❄️ 空调</option>
+                        <option value="curtain">🪟 窗帘</option>
+                        <option value="speaker">🔊 音箱</option>
+                        <option value="other">📟 其他</option>
+                    </select>
+                </div>
+                <div class="device-list" id="deviceList">
+                    <div class="loading">加载中...</div>
+                </div>
+            </aside>
+
+            <!-- 中间户型图区域 -->
+            <main class="floor-plan-container">
+                <div class="floor-plan-header">
+                    <div class="floor-plan-title">
+                        <span id="homeName">请选择家庭</span>
+                        <span class="room-count" id="roomCount"></span>
+                    </div>
+                    <div class="view-controls">
+                        <button id="resetViewBtn" class="btn-icon" title="重置视图">⟲</button>
+                        <button id="zoomOutBtn" class="btn-icon" title="缩小">−</button>
+                        <button id="zoomInBtn" class="btn-icon" title="放大">+</button>
+                    </div>
+                </div>
+
+                <div class="floor-plan-wrapper">
+                    <svg id="floorPlanSvg" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 背景 -->
+                        <rect width="900" height="600" fill="#0c1525"/>
+
+                        <!-- 房间层 -->
+                        <g id="roomsLayer"></g>
+
+                        <!-- 家具层 -->
+                        <g id="furnitureLayer"></g>
+
+                        <!-- 设备层 -->
+                        <g id="devicesLayer"></g>
+
+                        <!-- 选中/拖拽层 -->
+                        <g id="overlayLayer"></g>
+                    </svg>
+                </div>
+
+                <!-- 户型生成器对话框 -->
+                <div id="generatorModal" class="modal">
+                    <div class="modal-content">
+                        <h3>🏗️ 生成户型图</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>卧室数量</label>
+                                <input type="number" id="bedroomCount" value="2" min="1" max="5">
+                            </div>
+                            <div class="form-group">
+                                <label>客厅数量</label>
+                                <input type="number" id="livingCount" value="1" min="0" max="2">
+                            </div>
+                            <div class="form-group">
+                                <label>卫生间</label>
+                                <input type="number" id="bathroomCount" value="1" min="0" max="3">
+                            </div>
+                            <div class="form-group">
+                                <label>厨房</label>
+                                <select id="kitchenCount">
+                                    <option value="1">有厨房</option>
+                                    <option value="0">无厨房</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>阳台</label>
+                                <select id="balconyCount">
+                                    <option value="1">有阳台</option>
+                                    <option value="0">无阳台</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>书房</label>
+                                <select id="studyCount">
+                                    <option value="0">无书房</option>
+                                    <option value="1">有书房</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-secondary" onclick="closeGeneratorModal()">取消</button>
+                            <button class="btn btn-primary" onclick="generateFloorPlan()">生成</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 房间编辑对话框 -->
+                <div id="roomEditModal" class="modal">
+                    <div class="modal-content">
+                        <h3>✏️ 编辑房间</h3>
+                        <div class="form-group">
+                            <label>房间名称</label>
+                            <input type="text" id="roomNameInput" placeholder="例如：主卧">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>宽度</label>
+                                <input type="number" id="roomWidthInput" min="50" max="400">
+                            </div>
+                            <div class="form-group">
+                                <label>高度</label>
+                                <input type="number" id="roomHeightInput" min="50" max="400">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-danger" onclick="deleteRoom()">删除</button>
+                            <button class="btn btn-secondary" onclick="closeRoomEditModal()">取消</button>
+                            <button class="btn btn-primary" onclick="saveRoomEdit()">保存</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- 右侧属性面板 -->
+            <aside class="panel-right">
+                <div class="panel-header">
+                    <h3>⚙️ 控制</h3>
+                </div>
+                <div id="deviceProperties" class="properties-content">
+                    <div class="empty-state">
+                        <div class="empty-icon">📱</div>
+                        <p>点击设备查看详情</p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- 底部状态栏 -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span id="statusText">就绪</span>
+            </div>
+            <div class="status-right">
+                <span id="onlineCount">在线: 0</span>
+                <span id="totalCount">总计: 0</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 房间右键菜单 -->
+    <div id="contextMenu" class="context-menu">
+        <div class="menu-item" onclick="editRoom()">✏️ 编辑房间</div>
+        <div class="menu-item" onclick="deleteRoomFromMenu()">🗑️ 删除房间</div>
+    </div>
+
+    <!-- 设备右键菜单 -->
+    <div id="deviceContextMenu" class="context-menu">
+        <div class="menu-item" onclick="deleteDeviceFromMenu()">🗑️ 删除设备</div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

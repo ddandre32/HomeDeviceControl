@@ -2,6 +2,9 @@
 """
 系统管理命令
 """
+import asyncio
+import sys
+import os
 from typing import Optional
 
 import click
@@ -9,6 +12,9 @@ import click
 from .client import CLIClient, run_async
 from .config import CLIConfig
 from .formatter import ErrorCode, print_error, print_success
+
+# 添加 web 模块路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 @click.group(name="system")
@@ -183,5 +189,62 @@ def system_config(ctx, key: str, value: Optional[str], unset: bool, format_type:
         print_error(
             error_message=str(e),
             code=ErrorCode.CONFIG_ERROR,
+            format_type=fmt
+        )
+
+
+@system_cmd.command(name="web")
+@click.option("--host", default="0.0.0.0", help="绑定地址")
+@click.option("--port", type=int, default=8080, help="端口号")
+@click.option("-f", "--format", "format_type", default=None, type=click.Choice(["json", "yaml", "table", "human"]))
+@click.pass_context
+def system_web(ctx, host: str, port: int, format_type: Optional[str]):
+    """启动智能家居地图 Web 服务器
+
+    \b
+    使用示例:
+      miot system web              # 启动 Web 服务器 (默认端口 8080)
+      miot system web --port 3000  # 使用自定义端口
+      miot system web --host 127.0.0.1  # 仅本地访问
+
+    \b
+    功能特性:
+      - 可视化户型图编辑
+      - 拖拽设备到房间
+      - 实时设备状态显示
+      - 设备开关控制
+    """
+    fmt = format_type or ctx.obj.get("format", "table")
+
+    try:
+        # 导入并启动 Web 服务器
+        from web import SmartHomeWebServer
+
+        async def start_server():
+            server = SmartHomeWebServer(host=host, port=port)
+            runner = await server.start()
+            print(f"\n🌐 打开浏览器访问: http://localhost:{port}")
+            print("按 Ctrl+C 停止服务器\n")
+
+            # 保持运行
+            try:
+                while True:
+                    await asyncio.sleep(3600)
+            except KeyboardInterrupt:
+                print("\n正在关闭服务器...")
+                await runner.cleanup()
+
+        asyncio.run(start_server())
+
+    except ImportError as e:
+        print_error(
+            error_message=f"Web 模块依赖未安装: {e}\n请运行: pip install aiohttp aiohttp-cors",
+            code=ErrorCode.CONFIG_ERROR,
+            format_type=fmt
+        )
+    except Exception as e:
+        print_error(
+            error_message=str(e),
+            code=ErrorCode.UNKNOWN_ERROR,
             format_type=fmt
         )
