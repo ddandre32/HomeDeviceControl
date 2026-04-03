@@ -32,15 +32,15 @@ const THROTTLE_MS = 16; // 约60fps
 let autoRefreshInterval = null;
 const AUTO_REFRESH_MS = 3000; // 每3秒刷新一次
 
-// 房间类型配置
+// 房间类型配置 - 马卡龙色系
 const ROOM_TYPES = {
-    bedroom: { name: '卧室', color: '#1a2744', icon: '🛏️', minSize: { w: 120, h: 100 } },
-    living: { name: '客厅', color: '#1a2f44', icon: '🛋️', minSize: { w: 180, h: 140 } },
-    bathroom: { name: '卫生间', color: '#1a2438', icon: '🚿', minSize: { w: 80, h: 80 } },
-    kitchen: { name: '厨房', color: '#1a2a3d', icon: '🍳', minSize: { w: 100, h: 100 } },
-    balcony: { name: '阳台', color: '#1a2235', icon: '🌿', minSize: { w: 100, h: 60 } },
-    study: { name: '书房', color: '#1a263a', icon: '📚', minSize: { w: 100, h: 90 } },
-    entry: { name: '玄关', color: '#1a202e', icon: '🚪', minSize: { w: 80, h: 80 } }
+    bedroom: { name: '卧室', color: '#ffd5e8', icon: '🛏️', minSize: { w: 120, h: 100 } },
+    living: { name: '客厅', color: '#d5e8ff', icon: '🛋️', minSize: { w: 180, h: 140 } },
+    bathroom: { name: '卫生间', color: '#d5f5e8', icon: '🚿', minSize: { w: 80, h: 80 } },
+    kitchen: { name: '厨房', color: '#ffe8d5', icon: '🍳', minSize: { w: 100, h: 100 } },
+    balcony: { name: '阳台', color: '#e8f5d5', icon: '🌿', minSize: { w: 100, h: 60 } },
+    study: { name: '书房', color: '#e8d5ff', icon: '📚', minSize: { w: 100, h: 90 } },
+    entry: { name: '玄关', color: '#f0f0f5', icon: '🚪', minSize: { w: 80, h: 80 } }
 };
 
 // 设备图标映射
@@ -599,17 +599,31 @@ function renderRoom(room, roomsLayer, furnitureLayer, overlayLayer) {
     roomGroup.setAttribute('class', 'room-group');
     roomGroup.setAttribute('data-room-id', room.id);
 
-    // 房间矩形
+    // 房间3D投影效果
+    const shadowRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    shadowRect.setAttribute('x', room.x + 4);
+    shadowRect.setAttribute('y', room.y + 4);
+    shadowRect.setAttribute('width', room.width);
+    shadowRect.setAttribute('height', room.height);
+    shadowRect.setAttribute('rx', 12);
+    shadowRect.setAttribute('fill', 'rgba(0,0,0,0.08)');
+    shadowRect.setAttribute('pointer-events', 'none');
+    roomGroup.appendChild(shadowRect);
+
+    // 房间主体矩形
     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     rect.setAttribute('class', state.editMode ? 'room-rect editing' : 'room-rect');
     rect.setAttribute('x', room.x);
     rect.setAttribute('y', room.y);
     rect.setAttribute('width', room.width);
     rect.setAttribute('height', room.height);
-    rect.setAttribute('rx', 4);
-    rect.setAttribute('fill', room.color || ROOM_TYPES[room.type]?.color || '#1a2744');
-    rect.setAttribute('stroke', state.selectedRoom?.id === room.id ? '#3b82f6' : '#2a3d58');
-    rect.setAttribute('stroke-width', state.selectedRoom?.id === room.id ? '3' : '2');
+    rect.setAttribute('rx', 12);
+
+    // 使用渐变填充，根据房间类型
+    const gradientId = `grad-${room.type}`;
+    rect.setAttribute('fill', `url(#${gradientId})`);
+    rect.setAttribute('stroke', state.selectedRoom?.id === room.id ? '#4a90d9' : 'rgba(0,0,0,0.08)');
+    rect.setAttribute('stroke-width', state.selectedRoom?.id === room.id ? '2' : '1');
     rect.setAttribute('id', `room-rect-${room.id}`);
 
     // 事件绑定
@@ -654,7 +668,7 @@ function renderRoom(room, roomsLayer, furnitureLayer, overlayLayer) {
         resizeHandle.setAttribute('y', room.y + room.height - 10);
         resizeHandle.setAttribute('width', 16);
         resizeHandle.setAttribute('height', 16);
-        resizeHandle.setAttribute('rx', 3);
+        resizeHandle.setAttribute('rx', 4);
         resizeHandle.setAttribute('id', `resize-handle-${room.id}`);
         resizeHandle.addEventListener('mousedown', (e) => startResizeRoom(e, room));
         overlayLayer.appendChild(resizeHandle);
@@ -671,55 +685,55 @@ function renderFurniture(room, layer) {
     // 根据房间类型渲染不同的家具轮廓
     const furnitureGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     furnitureGroup.setAttribute('class', 'furniture-group');
-    furnitureGroup.setAttribute('opacity', '0.4');
+    furnitureGroup.setAttribute('opacity', '0.25');
 
     const cx = room.x + room.width / 2;
     const cy = room.y + room.height / 2;
 
     switch (room.type) {
         case 'bedroom':
-            // 床
+            // 床 - 简约轮廓
             const bed = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             bed.setAttribute('class', 'furniture');
-            bed.setAttribute('x', cx - 40);
-            bed.setAttribute('y', cy - 10);
-            bed.setAttribute('width', 80);
-            bed.setAttribute('height', 50);
-            bed.setAttribute('rx', 4);
+            bed.setAttribute('x', cx - 35);
+            bed.setAttribute('y', cy - 15);
+            bed.setAttribute('width', 70);
+            bed.setAttribute('height', 40);
+            bed.setAttribute('rx', 6);
             furnitureGroup.appendChild(bed);
             break;
 
         case 'living':
-            // 沙发
+            // 沙发 - 简约轮廓
             const sofa = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             sofa.setAttribute('class', 'furniture');
-            sofa.setAttribute('x', cx - 60);
-            sofa.setAttribute('y', cy + 10);
-            sofa.setAttribute('width', 120);
-            sofa.setAttribute('height', 40);
-            sofa.setAttribute('rx', 6);
+            sofa.setAttribute('x', cx - 50);
+            sofa.setAttribute('y', cy + 5);
+            sofa.setAttribute('width', 100);
+            sofa.setAttribute('height', 35);
+            sofa.setAttribute('rx', 8);
             furnitureGroup.appendChild(sofa);
             break;
 
         case 'kitchen':
-            // 橱柜
+            // 橱柜 - 简约轮廓
             const counter = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             counter.setAttribute('class', 'furniture');
-            counter.setAttribute('x', room.x + 10);
-            counter.setAttribute('y', room.y + 10);
-            counter.setAttribute('width', room.width - 20);
-            counter.setAttribute('height', 30);
-            counter.setAttribute('rx', 3);
+            counter.setAttribute('x', room.x + 15);
+            counter.setAttribute('y', room.y + 15);
+            counter.setAttribute('width', room.width - 30);
+            counter.setAttribute('height', 25);
+            counter.setAttribute('rx', 4);
             furnitureGroup.appendChild(counter);
             break;
 
         case 'bathroom':
-            // 马桶和洗手池
+            // 马桶和洗手池 - 简约圆形
             const toilet = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             toilet.setAttribute('class', 'furniture');
-            toilet.setAttribute('cx', room.x + room.width - 25);
-            toilet.setAttribute('cy', room.y + 25);
-            toilet.setAttribute('r', 12);
+            toilet.setAttribute('cx', room.x + room.width - 30);
+            toilet.setAttribute('cy', room.y + 30);
+            toilet.setAttribute('r', 10);
             furnitureGroup.appendChild(toilet);
             break;
     }
@@ -758,36 +772,33 @@ function renderDevices(layer) {
         deviceGroup.setAttribute('data-device-id', device.did);
         deviceGroup.addEventListener('click', () => selectDevice(device));
 
-        // 判断设备状态：在线且开启 = on，在线关闭 = off，离线 = offline
+        // 判断设备状态
         let statusClass = 'offline';
         if (device.online) {
             statusClass = device.power === true ? 'on' : 'off';
         }
 
-        // 设备圆形背景
+        // 设备圆形背景 - 更大的尺寸，更现代的设计
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('class', `device-circle ${statusClass}`);
-        circle.setAttribute('r', 14);
+        circle.setAttribute('r', 18);
         deviceGroup.appendChild(circle);
 
         // 设备图标
         const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         icon.setAttribute('class', 'device-emoji');
-        icon.setAttribute('dy', '1');
+        icon.setAttribute('dy', '2');
         icon.textContent = getDeviceIcon(device.model);
         deviceGroup.appendChild(icon);
 
-        // 添加悬停事件 - 修复：移除mousemove事件，避免频繁更新导致抖动
+        // 添加悬停事件
         deviceGroup.addEventListener('mouseenter', (e) => showDeviceTooltip(e, device, pos));
         deviceGroup.addEventListener('mouseleave', hideDeviceTooltip);
-        // 移除 mousemove 事件，tooltip位置在mouseenter时固定
 
         // 编辑模式下添加设备拖拽和右键删除功能
         if (state.editMode) {
             deviceGroup.addEventListener('contextmenu', (e) => showDeviceContextMenu(e, device));
-            // 添加设备拖拽移动功能
             deviceGroup.addEventListener('mousedown', (e) => startDragDevice(e, device));
-            // 编辑模式下改变光标样式
             deviceGroup.style.cursor = 'move';
         } else {
             deviceGroup.style.cursor = 'pointer';

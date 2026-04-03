@@ -66,8 +66,47 @@
 
                 <div class="floor-plan-wrapper">
                     <svg id="floorPlanSvg" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
-                        <!-- 背景 -->
-                        <rect width="900" height="600" fill="#0c1525"/>
+                        <!-- 定义渐变 -->
+                        <defs>
+                            <!-- 客厅渐变 -->
+                            <linearGradient id="grad-living" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#d5e8ff;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c5d8f0;stop-opacity:1" />
+                            </linearGradient>
+                            <!-- 卧室渐变 -->
+                            <linearGradient id="grad-bedroom" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ffd5e8;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#f0c5d8;stop-opacity:1" />
+                            </linearGradient>
+                            <!-- 厨房渐变 -->
+                            <linearGradient id="grad-kitchen" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ffe8d5;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#f0d8c5;stop-opacity:1" />
+                            </linearGradient>
+                            <!-- 卫生间渐变 -->
+                            <linearGradient id="grad-bathroom" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#d5f5e8;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c5e5d8;stop-opacity:1" />
+                            </linearGradient>
+                            <!-- 阳台渐变 -->
+                            <linearGradient id="grad-balcony" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#e8f5d5;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#d8e5c5;stop-opacity:1" />
+                            </linearGradient>
+                            <!-- 书房渐变 -->
+                            <linearGradient id="grad-study" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#e8d5ff;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#d8c5f0;stop-opacity:1" />
+                            </linearGradient>
+                            <!-- 玄关渐变 -->
+                            <linearGradient id="grad-entry" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#f0f0f5;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e0e0e8;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- 背景 - 柔和的浅灰色 -->
+                        <rect width="900" height="600" fill="#f8f9fb" rx="20"/>
 
                         <!-- 房间层 -->
                         <g id="roomsLayer"></g>
