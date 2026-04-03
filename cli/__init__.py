@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-小米IoT CLI工具 - 符合CLI设计规范
+智能家居CLI工具 - 符合CLI设计规范
+支持小米、海尔等多品牌设备控制
 
 设计特性:
 - 双用户兼容: TTY环境（人类）默认table，非TTY（Agent）默认json
@@ -14,6 +15,10 @@
 - 内容获取: device get, device spec
 - 内容处理: device prop get/set, device action, scene run
 - 内容导出: 所有命令支持--format/--json选项
+
+品牌渠道:
+- xiaomi: 小米IoT设备
+- haier: 海尔U+设备
 """
 
 __version__ = "1.0.0"

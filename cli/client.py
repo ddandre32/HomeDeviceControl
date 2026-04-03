@@ -12,37 +12,50 @@ from .config import CLIConfig
 
 
 class CLIClient:
-    """CLI客户端封装"""
+    """CLI客户端封装，支持多渠道"""
 
     _instance: Optional["CLIClient"] = None
-    _client: Optional[MIoTClient] = None
+    _client: Optional[Any] = None
 
-    def __new__(cls, config: CLIConfig):
+    def __new__(cls, config: CLIConfig, channel: str = "xiaomi"):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._config = config
+            cls._instance._channel = channel
         return cls._instance
 
-    async def _get_client(self) -> MIoTClient:
-        """获取或创建MIoT客户端"""
+    def _get_channel_client(self):
+        """获取渠道客户端"""
+        if self._channel == "haier":
+            from haier import HaierClient
+            return HaierClient()
+        else:
+            return None  # 小米客户端通过原有逻辑创建
+
+    async def _get_client(self) -> Any:
+        """获取或创建客户端"""
         if self._client is None:
-            uuid = self._config.get("uuid")
-            if not uuid:
-                import uuid as uuid_module
-                uuid = uuid_module.uuid4().hex
-                self._config.set("uuid", uuid)
-                self._config.save()
+            if self._channel == "haier":
+                self._client = self._get_channel_client()
+            else:
+                # 原有小米客户端逻辑
+                uuid = self._config.get("uuid")
+                if not uuid:
+                    import uuid as uuid_module
+                    uuid = uuid_module.uuid4().hex
+                    self._config.set("uuid", uuid)
+                    self._config.save()
 
-            oauth_info = self._config.get_oauth_info()
-
-            self._client = MIoTClient(
-                uuid=uuid,
-                redirect_uri=self._config.get("redirect_uri"),
-                cache_path=self._config.get_cache_path(),
-                cloud_server=self._config.get("cloud_server"),
-                oauth_info=oauth_info,
-            )
-            await self._client.init()
+                oauth_info = self._config.get_oauth_info()
+                from miot_sdk import MIoTClient
+                self._client = MIoTClient(
+                    uuid=uuid,
+                    redirect_uri=self._config.get("redirect_uri"),
+                    cache_path=self._config.get_cache_path(),
+                    cloud_server=self._config.get("cloud_server"),
+                    oauth_info=oauth_info,
+                )
+                await self._client.init()
         return self._client
 
     async def ensure_authenticated(self) -> bool:

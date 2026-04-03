@@ -47,6 +47,7 @@ from . import __version__
 from .commands_device import device_cmd
 from .commands_scene import scene_cmd
 from .commands_system import system_cmd
+from .commands_haier import haier_cmd
 from .config import CLIConfig
 from .formatter import ErrorCode, OutputFormat, get_default_format, is_tty, print_error
 
@@ -155,6 +156,7 @@ def cli(ctx, config_path: Optional[str], format_type: Optional[str], json_mode: 
 cli.add_command(device_cmd)
 cli.add_command(scene_cmd)
 cli.add_command(system_cmd)
+cli.add_command(haier_cmd)
 
 
 # 便捷命令

@@ -1,6 +1,6 @@
 ---
 name: home-device-control
-description: "控制小米智能家居设备的原子工具，支持设备查询、控制和场景执行"
+description: "控制小米/海尔智能家居设备的原子工具，支持设备查询、控制和场景执行"
 homepage: https://github.com/ddandre32/HomeDeviceControl
 metadata:
   openclaw:
@@ -8,7 +8,7 @@ metadata:
     requires:
       bins: ["home-device"]
       env: ["MIOT_TOKEN", "MIOT_UUID"]
-      config: ["channels.xiaomi.enabled"]
+      config: ["channels.xiaomi.enabled", "channels.haier.enabled"]
     primaryEnv: "MIOT_TOKEN"
     install:
       - id: "pip"
@@ -21,22 +21,22 @@ metadata:
 
 # Home Device Control
 
-通过 CLI 控制小米智能家居设备。提供原子操作，复杂任务由 Agent 规划执行。
+通过 CLI 控制小米/海尔智能家居设备。提供原子操作，复杂任务由 Agent 规划执行。
 
 ## 使用场景
 
 ✅ **使用时机**:
-- 控制已配置的小米智能家居设备（开关、调节亮度/温度）
+- 控制已配置的小米/海尔智能家居设备（开关、调节亮度/温度）
 - 查询设备列表和状态
 - 执行预设的智能场景
 - 检查渠道连接状态
 - **智能音箱语音控制**（播放、暂停、切换歌曲）
 
 ❌ **不适用场景**:
-- 设备初次配对和配网（需使用米家App）
+- 设备初次配对和配网（需使用米家App/海尔智家App）
 - 创建或修改智能场景
 - 设备固件升级
-- 非小米品牌设备控制
+- 非小米/海尔品牌设备控制
 - **直接设置音箱音量**（音量属性只读）
 
 ## 安装
@@ -49,6 +49,8 @@ pip install git+https://github.com/ddandre32/HomeDeviceControl.git
 
 ### 1. 获取授权
 
+#### 小米设备
+
 ```bash
 # 获取 OAuth URL
 home-device oauth-url
@@ -57,6 +59,15 @@ home-device oauth-url
 
 # 完成认证
 home-device auth <授权码>
+```
+
+#### 海尔设备
+
+```bash
+# 海尔设备认证
+home-device haier auth
+
+# 输入海尔账号和密码
 ```
 
 ### 2. 验证配置
@@ -75,6 +86,12 @@ home-device list-devices
 
 # JSON 格式（注意：--json 在子命令前）
 home-device --json list-devices
+
+# 海尔设备列表
+home-device haier list
+
+# 海尔设备JSON格式
+home-device --json haier list
 ```
 
 ### 控制设备
@@ -97,6 +114,10 @@ home-device --dry-run control <device_id> turn_on
 
 # 自动确认（注意：--yes 在子命令前）
 home-device --yes control <device_id> turn_on
+
+# 海尔设备控制
+home-device haier control <device_id> turn_on
+home-device haier control <device_id> set_brightness --value 50
 ```
 
 ### 智能音箱控制
@@ -144,6 +165,9 @@ home-device execute-scene <scene_id>
 ```bash
 # 检查渠道状态
 home-device check
+
+# 检查海尔渠道状态
+home-device haier status
 ```
 
 ## 命令参考
@@ -233,18 +257,23 @@ from channels import get_channel
 
 # 获取渠道
 xiaomi = get_channel("xiaomi")
+haier = get_channel("haier")
 
 # 列出设备
-devices = xiaomi.list_devices()
+xiaomi_devices = xiaomi.list_devices()
+haier_devices = haier.list_devices()
 
 # 控制设备
 result = xiaomi.control_device("light_001", "turn_on")
+result = haier.control_device("haier_light_001", "turn_on")
 
 # 控制音箱播放
 result = xiaomi.control_device("speaker_001", "speaker_play")
+result = haier.control_device("haier_speaker_001", "speaker_pause")
 
 # 控制音箱暂停
 result = xiaomi.control_device("speaker_001", "speaker_pause")
+result = haier.control_device("haier_speaker_001", "speaker_pause")
 ```
 
 ## 故障排查
@@ -260,9 +289,9 @@ home-device auth <新授权码>
 ```
 
 ### 设备不响应
-- 检查设备是否在线：`home-device list-devices`
+- 检查设备是否在线：`home-device list-devices` 或 `home-device haier list`
 - 检查网络连接
-- 尝试通过米家App控制，确认设备正常
+- 尝试通过米家App/海尔智家App控制，确认设备正常
 
 ### 命令无输出
 - 添加 `--json` 查看结构化错误信息
@@ -278,3 +307,4 @@ home-device auth <新授权码>
 
 - GitHub: https://github.com/ddandre32/HomeDeviceControl
 - 小米 IoT 文档: https://home.mi.com
+- 海尔 U+ 文档: https://uplus.haier.com
