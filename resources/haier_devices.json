@@ -1,0 +1,110 @@
+{
+  "device_list": [
+    {
+      "id": "2C37C5B0B58A",
+      "type": "VoicePanel",
+      "name": "智家大脑屏12寸",
+      "floor": "一层",
+      "room": "客厅"
+    },
+    {
+      "id": "2C37C5B091DE01",
+      "type": "Lamp",
+      "name": "门厅灯",
+      "floor": "一层",
+      "room": "门厅"
+    },
+    {
+      "id": "3429EFACA260",
+      "type": "Lamp",
+      "name": "客厅顶彩灯带",
+      "floor": "一层",
+      "room": "客厅"
+    },
+    {
+      "id": "2C37C5B0982E00BF0102",
+      "type": "AirConditioner",
+      "name": "中央空调-客厅",
+      "floor": "一层",
+      "room": "客厅"
+    },
+    {
+      "id": "2C37C5B0982E00BF0101",
+      "type": "AirConditioner",
+      "name": "中央空调-餐厅",
+      "floor": "一层",
+      "room": "餐厅"
+    },
+    {
+      "id": "2C37C5B0982E00BF0106",
+      "type": "AirConditioner",
+      "name": "中央空调-卧室",
+      "floor": "一层",
+      "room": "卧室"
+    },
+    {
+      "id": "2C37C5B0CFC769FFFEE74113",
+      "type": "WindowCurtains",
+      "name": "卧室纱帘",
+      "floor": "一层",
+      "room": "卧室"
+    },
+    {
+      "id": "2C37C5B0B58A7EFFFEF7A3A3",
+      "type": "WindowCurtains",
+      "name": "客厅梦幻帘左",
+      "floor": "一层",
+      "room": "客厅"
+    },
+    {
+      "id": "2C37C5B0B58AD4FFFE7EF1D3",
+      "type": "WindowCurtains",
+      "name": "客厅梦幻帘右",
+      "floor": "一层",
+      "room": "客厅"
+    },
+    {
+      "id": "2DE11E840B",
+      "type": "Fridge",
+      "name": "智能冰箱",
+      "floor": "一层",
+      "room": "厨房"
+    },
+    {
+      "id": "D058C0CFE083",
+      "type": "Television",
+      "name": "智能电视",
+      "floor": "一层",
+      "room": "客厅"
+    },
+    {
+      "id": "E0F4B14012",
+      "type": "DoorLock",
+      "name": "智能门锁2",
+      "floor": "一层",
+      "room": "玄关"
+    }
+  ],
+  "scene_list": [
+    {
+      "id": "scene_home",
+      "name": "回家模式",
+      "enabled": true
+    },
+    {
+      "id": "scene_leave",
+      "name": "离家模式",
+      "enabled": true
+    },
+    {
+      "id": "scene_sleep",
+      "name": "睡眠模式",
+      "enabled": true
+    },
+    {
+      "id": "scene_cinema",
+      "name": "影院模式",
+      "enabled": true
+    }
+  ]
+}
