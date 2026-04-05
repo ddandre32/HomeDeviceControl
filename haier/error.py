@@ -30,6 +30,13 @@ class ErrorCode(Enum):
     RATE_LIMITED = "rate_limited"
     INVALID_PARAM = "invalid_param"
 
+    # MCP错误
+    MCP_CONNECTION_ERROR = "mcp_connection_error"
+    MCP_INITIALIZE_FAILED = "mcp_initialize_failed"
+    MCP_TOOL_NOT_FOUND = "mcp_tool_not_found"
+    MCP_SSE_ERROR = "mcp_sse_error"
+    MCP_RECONNECT_FAILED = "mcp_reconnect_failed"
+
 
 class HaierError(Exception):
     """海尔基础异常"""
@@ -79,3 +86,11 @@ class HaierDeviceError(HaierError):
     def __init__(self, message: str, device_id: str = "", code: ErrorCode = ErrorCode.DEVICE_ERROR):
         super().__init__(message, code, {"device_id": device_id})
         self.device_id = device_id
+
+
+class HaierMCPError(HaierError):
+    """海尔MCP协议异常"""
+
+    def __init__(self, message: str, code: ErrorCode = ErrorCode.MCP_CONNECTION_ERROR, data: Optional[dict] = None):
+        super().__init__(message, code, data)
+        self.reconnect_attempted = False

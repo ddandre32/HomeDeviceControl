@@ -23,6 +23,8 @@ setup(
         "pycryptodome>=3.15.0",
         "click>=8.0",
         "pyyaml>=6.0",
+        "httpx>=0.25.0",
+        "sseclient-py>=1.8.0",
     ],
     entry_points={
         "console_scripts": [

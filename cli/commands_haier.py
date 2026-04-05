@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-海尔设备管理命令
-类似于 commands_device.py，但针对海尔设备
+海尔设备管理命令 - MCP协议版本
+使用MCP (Model Context Protocol) 协议通过SSE传输层与海尔U+平台通信
 """
 
 import json
@@ -18,20 +18,19 @@ from .formatter import ErrorCode, OutputFormat, print_error, print_success
 @click.group(name="haier")
 @click.pass_context
 def haier_cmd(ctx):
-    """海尔设备管理命令"""
+    """海尔设备管理命令 (MCP协议)"""
     pass
 
 
 @haier_cmd.command(name="list")
-@click.option("--refresh", is_flag=True, help="刷新设备列表")
 @click.option("--online", is_flag=True, help="仅显示在线设备")
 @click.option("--room", help="按房间筛选")
 @click.option("--type", "device_type", help="按设备类型筛选")
 @click.option("-f", "--format", "format_type", default=None, type=click.Choice(["json", "yaml", "table", "human"]))
 @click.pass_context
-def haier_list(ctx, refresh: bool, online: bool, room: Optional[str],
+def haier_list(ctx, online: bool, room: Optional[str],
                device_type: Optional[str], format_type: Optional[str]):
-    """获取海尔设备列表
+    """获取海尔设备列表 (通过MCP协议)
 
     \b
     使用示例:
@@ -71,7 +70,7 @@ def haier_list(ctx, refresh: bool, online: bool, room: Optional[str],
         print_success(result, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.DEVICE_ERROR,
             format_type=fmt
         )
@@ -86,7 +85,7 @@ def haier_list(ctx, refresh: bool, online: bool, room: Optional[str],
 @click.option("-f", "--format", "format_type", default=None, type=click.Choice(["json", "yaml", "table", "human"]))
 @click.pass_context
 def haier_control(ctx, did: str, action: str, value: Optional[str], format_type: Optional[str]):
-    """控制海尔设备
+    """控制海尔设备 (通过MCP协议)
 
     \b
     参数: DID(设备ID) ACTION(动作) [--value VALUE]
@@ -100,11 +99,11 @@ def haier_control(ctx, did: str, action: str, value: Optional[str], format_type:
 
     \b
     支持的动作:
-      turn_on           - 打开设备
-      turn_off          - 关闭设备
+      turn_on           - 打开设备 (调用lampControl)
+      turn_off          - 关闭设备 (调用lampControl)
       set_brightness    - 设置亮度(0-100)
       set_temperature   - 设置温度(16-31)
-      set_mode          - 设置模式
+      curtain_control   - 窗帘控制
     """
     config = ctx.obj["config"]
     client = CLIClient(config, channel="haier")
@@ -121,7 +120,7 @@ def haier_control(ctx, did: str, action: str, value: Optional[str], format_type:
         print_success(result, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.DEVICE_ERROR,
             format_type=fmt
         )
@@ -134,16 +133,26 @@ def haier_control(ctx, did: str, action: str, value: Optional[str], format_type:
 @click.option("-f", "--format", "format_type", default=None, type=click.Choice(["json", "yaml", "table", "human"]))
 @click.pass_context
 def haier_status(ctx, did: str, format_type: Optional[str]):
-    """获取海尔设备状态"""
+    """获取海尔设备状态 (通过MCP协议)"""
     config = ctx.obj["config"]
     client = CLIClient(config, channel="haier")
     fmt = format_type or ctx.obj.get("format", "table")
 
     try:
         from channels import get_channel
-        haier = get_channel("haier")
+        from haier import HaierClient
 
-        device = haier.get_device(did)
+        haier_channel = get_channel("haier")
+        haier_client = HaierClient()
+
+        async def _get_status():
+            async with haier_client:
+                status = await haier_client.get_device_status([did])
+                return status
+
+        status = run_async(_get_status())
+
+        device = haier_channel.get_device(did)
         if device:
             result = {
                 "did": device.id,
@@ -152,17 +161,18 @@ def haier_status(ctx, did: str, format_type: Optional[str]):
                 "online": device.online,
                 "room": device.room,
                 "model": device.model,
+                "status": status,
             }
             print_success(result, fmt)
         else:
             print_error(
-                error_message=f"设备未找到: {did}",
+                message=f"设备未找到: {did}",
                 code=ErrorCode.DEVICE_NOT_FOUND,
                 format_type=fmt
             )
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.DEVICE_ERROR,
             format_type=fmt
         )
@@ -171,37 +181,95 @@ def haier_status(ctx, did: str, format_type: Optional[str]):
 
 
 @haier_cmd.command(name="auth")
-@click.option("--username", prompt=True, help="海尔账号")
-@click.option("--password", prompt=True, hide_input=True, help="密码")
 @click.option("-f", "--format", "format_type", default=None, type=click.Choice(["json", "yaml", "table", "human"]))
 @click.pass_context
-def haier_auth(ctx, username: str, password: str, format_type: Optional[str]):
-    """海尔设备认证"""
+def haier_auth(ctx, format_type: Optional[str]):
+    """初始化海尔MCP连接
+
+    \b
+    MCP协议通过SSE传输层通信，无需用户名密码认证。
+    初始化过程会自动：
+      1. 建立SSE连接
+      2. 发送initialize握手
+      3. 启动自动重连和心跳机制
+
+    \b
+    使用示例:
+      home-device haier auth
+    """
     config = ctx.obj["config"]
     fmt = format_type or ctx.obj.get("format", "table")
 
     try:
         from haier import HaierClient
-        from channels.haier import HaierChannel
 
         client = HaierClient()
-        success = run_async(client.authenticate(username, password))
+        success = run_async(client.initialize())
 
         if success:
+            # 获取可用工具列表
+            tools = run_async(client.get_tools())
+            tool_names = [tool.name for tool in tools]
+
             print_success(
-                {"message": "认证成功", "username": username},
+                {
+                    "message": "MCP连接初始化成功",
+                    "server_info": client._connection_info.server_info,
+                    "available_tools": tool_names,
+                },
                 fmt
             )
         else:
             print_error(
-                error_message="认证失败",
+                message="MCP连接初始化失败",
                 code=ErrorCode.AUTH_FAILED,
                 format_type=fmt
             )
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.AUTH_FAILED,
+            format_type=fmt
+        )
+
+
+@haier_cmd.command(name="tools")
+@click.option("-f", "--format", "format_type", default=None, type=click.Choice(["json", "yaml", "table", "human"]))
+@click.pass_context
+def haier_tools(ctx, format_type: Optional[str]):
+    """列出可用的MCP工具
+
+    \b
+    使用示例:
+      home-device haier tools
+    """
+    config = ctx.obj["config"]
+    fmt = format_type or ctx.obj.get("format", "table")
+
+    try:
+        from haier import HaierClient
+
+        client = HaierClient()
+
+        async def _get_tools():
+            async with client:
+                tools = await client.get_tools()
+                return [
+                    {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "input_schema": tool.input_schema,
+                    }
+                    for tool in tools
+                ]
+
+        tools = run_async(_get_tools())
+        print_success(tools, fmt)
+
+    except Exception as e:
+        print_error(
+            message=str(e),
+            code=ErrorCode.DEVICE_ERROR,
             format_type=fmt
         )
 

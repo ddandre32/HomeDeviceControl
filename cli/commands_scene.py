@@ -73,7 +73,7 @@ def scene_list(ctx, refresh: bool, home: Optional[str], room: Optional[str], ena
         print_success(result, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.SCENE_EXEC_ERROR,
             format_type=fmt
         )
@@ -105,13 +105,13 @@ def scene_get(ctx, scene_id: str, format_type: Optional[str]):
             print_success(scene.model_dump(), fmt)
         else:
             print_error(
-                error_message=f"场景未找到: {scene_id}",
+                message=f"场景未找到: {scene_id}",
                 code=ErrorCode.SCENE_NOT_FOUND,
                 format_type=fmt
             )
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.SCENE_EXEC_ERROR,
             format_type=fmt
         )
@@ -154,7 +154,7 @@ def scene_search(ctx, keyword: str, format_type: Optional[str]):
         print_success(result, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.SCENE_EXEC_ERROR,
             format_type=fmt
         )
@@ -209,7 +209,7 @@ def scene_run(ctx, scene_id: str, batch: Optional[str], format_type: Optional[st
             }, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.SCENE_EXEC_ERROR,
             format_type=fmt
         )

@@ -4,8 +4,8 @@
 """
 
 from .client import HaierClient
-from .types import HaierDeviceInfo, HaierHomeInfo, HaierSceneInfo
-from .error import HaierError, HaierAuthError, HaierAPIError
+from .types import HaierDeviceInfo, HaierHomeInfo, HaierSceneInfo, MCPToolInfo, MCPCallResult
+from .error import HaierError, HaierAuthError, HaierAPIError, HaierMCPError
 
 __version__ = "1.0.0"
 
@@ -14,7 +14,10 @@ __all__ = [
     "HaierDeviceInfo",
     "HaierHomeInfo",
     "HaierSceneInfo",
+    "MCPToolInfo",
+    "MCPCallResult",
     "HaierError",
     "HaierAuthError",
     "HaierAPIError",
+    "HaierMCPError",
 ]

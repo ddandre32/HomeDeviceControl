@@ -86,7 +86,7 @@ def device_list(ctx, refresh: bool, online: bool, room: Optional[str],
         print_success(result, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.DEVICE_ERROR,
             format_type=fmt
         )
@@ -117,13 +117,13 @@ def device_get(ctx, did: str, format_type: Optional[str]):
             print_success(device.model_dump(), fmt)
         else:
             print_error(
-                error_message=f"设备未找到: {did}",
+                message=f"设备未找到: {did}",
                 code=ErrorCode.DEVICE_NOT_FOUND,
                 format_type=fmt
             )
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.DEVICE_ERROR,
             format_type=fmt
         )
@@ -152,7 +152,7 @@ def device_spec(ctx, did: str, format_type: Optional[str]):
         spec = run_async(client.get_device_spec(did))
         if not spec:
             print_error(
-                error_message=f"设备SPEC未找到: {did}",
+                message=f"设备SPEC未找到: {did}",
                 code=ErrorCode.SPEC_NOT_FOUND,
                 format_type=fmt
             )
@@ -163,7 +163,7 @@ def device_spec(ctx, did: str, format_type: Optional[str]):
         print_success(spec_dict, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.SPEC_NOT_FOUND,
             format_type=fmt
         )
@@ -207,7 +207,7 @@ def prop_get(ctx, did: str, siid: int, piid: int, format_type: Optional[str]):
         }, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.PROP_GET_ERROR,
             format_type=fmt
         )
@@ -257,7 +257,7 @@ def prop_set(ctx, did: str, siid: int, piid: int, value: str, format_type: Optio
         print_success(result, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.PROP_SET_ERROR,
             format_type=fmt
         )
@@ -292,7 +292,7 @@ def device_action(ctx, did: str, siid: int, aiid: int, in_list: tuple, format_ty
         print_success(result, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.ACTION_ERROR,
             format_type=fmt
         )
@@ -343,7 +343,7 @@ def device_batch(ctx, file_path: Optional[str], format_type: Optional[str]):
 
         if not isinstance(operations, list):
             print_error(
-                error_message="操作列表必须是数组",
+                message="操作列表必须是数组",
                 code=ErrorCode.INVALID_FORMAT,
                 format_type=fmt
             )
@@ -353,13 +353,13 @@ def device_batch(ctx, file_path: Optional[str], format_type: Optional[str]):
         print_success(results, fmt)
     except json.JSONDecodeError as e:
         print_error(
-            error_message=f"JSON解析错误: {e}",
+            message=f"JSON解析错误: {e}",
             code=ErrorCode.INVALID_FORMAT,
             format_type=fmt
         )
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.DEVICE_ERROR,
             format_type=fmt
         )

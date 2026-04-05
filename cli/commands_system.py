@@ -59,7 +59,7 @@ def system_oauth_url(ctx, format_type: Optional[str]):
         print_success({"oauth_url": url}, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.AUTH_FAILED,
             format_type=fmt
         )
@@ -94,13 +94,13 @@ def system_auth(ctx, code: str, format_type: Optional[str]):
             print_success({"authenticated": True}, fmt)
         else:
             print_error(
-                error_message="认证失败",
+                message="认证失败",
                 code=ErrorCode.AUTH_FAILED,
                 format_type=fmt
             )
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.AUTH_FAILED,
             format_type=fmt
         )
@@ -143,7 +143,7 @@ def system_notify(ctx, content: str, format_type: Optional[str]):
         print_success({"sent": result}, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.NETWORK_ERROR,
             format_type=fmt
         )
@@ -187,7 +187,7 @@ def system_config(ctx, key: str, value: Optional[str], unset: bool, format_type:
             print_success({"key": key, "value": parsed_value}, fmt)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.CONFIG_ERROR,
             format_type=fmt
         )
@@ -238,13 +238,13 @@ def system_web(ctx, host: str, port: int, format_type: Optional[str]):
 
     except ImportError as e:
         print_error(
-            error_message=f"Web 模块依赖未安装: {e}\n请运行: pip install aiohttp aiohttp-cors",
+            message=f"Web 模块依赖未安装: {e}\n请运行: pip install aiohttp aiohttp-cors",
             code=ErrorCode.CONFIG_ERROR,
             format_type=fmt
         )
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.UNKNOWN_ERROR,
             format_type=fmt
         )

@@ -215,14 +215,14 @@ def main():
         cli()
     except KeyboardInterrupt:
         print_error(
-            error_message="操作被用户中断",
+            message="操作被用户中断",
             code=ErrorCode.INTERRUPTED,
             format_type=OutputFormat.JSON
         )
         sys.exit(130)
     except Exception as e:
         print_error(
-            error_message=str(e),
+            message=str(e),
             code=ErrorCode.UNKNOWN_ERROR,
             format_type=OutputFormat.JSON
         )

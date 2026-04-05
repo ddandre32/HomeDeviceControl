@@ -245,11 +245,13 @@ class SmartHomeWebServer:
             "/static",
             STATIC_DIR,
             name="static",
-            append_version=True  # 添加版本号强制刷新缓存
+            append_version=True,  # 添加版本号强制刷新缓存
+            show_index=False
         )
 
         # 页面路由
         self.app.router.add_get("/", self.index_handler)
+        self.app.router.add_get("/test", self.test_handler)
         self.app.router.add_get("/api/homes", self.get_homes_handler)
         self.app.router.add_get("/api/homes/{home_id}/floorplan", self.get_floorplan_handler)
         self.app.router.add_post("/api/homes/{home_id}/floorplan", self.save_floorplan_handler)
@@ -283,6 +285,15 @@ class SmartHomeWebServer:
 </body>
 </html>'''
         return web.Response(text=fallback_html, content_type="text/html")
+
+    async def test_handler(self, request: web.Request) -> web.Response:
+        """测试页面"""
+        test_file = TEMPLATE_DIR / "test.html"
+        if test_file.exists():
+            with open(test_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            return web.Response(text=content, content_type="text/html")
+        return web.Response(text="Test page not found", status=404)
 
     async def get_homes_handler(self, request: web.Request) -> web.Response:
         """获取家庭列表 - 未认证时返回演示数据"""

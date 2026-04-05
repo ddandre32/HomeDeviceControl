@@ -23,12 +23,14 @@ metadata:
 
 通过 CLI 控制小米/海尔智能家居设备。提供原子操作，复杂任务由 Agent 规划执行。
 
+海尔设备采用 MCP (Model Context Protocol) 协议，通过 SSE 传输层与海尔U+平台通信。
+
 ## 使用场景
 
 ✅ **使用时机**:
 - 控制已配置的小米/海尔智能家居设备（开关、调节亮度/温度）
 - 查询设备列表和状态
-- 执行预设的智能场景
+- 执行预设的智能场景（仅小米）
 - 检查渠道连接状态
 - **智能音箱语音控制**（播放、暂停、切换歌曲）
 
@@ -38,6 +40,7 @@ metadata:
 - 设备固件升级
 - 非小米/海尔品牌设备控制
 - **直接设置音箱音量**（音量属性只读）
+- **海尔场景执行**（MCP协议暂不支持）
 
 ## 安装
 
@@ -47,9 +50,7 @@ pip install git+https://github.com/ddandre32/HomeDeviceControl.git
 
 ## 配置
 
-### 1. 获取授权
-
-#### 小米设备
+### 1. 小米设备认证
 
 ```bash
 # 获取 OAuth URL
@@ -61,16 +62,19 @@ home-device oauth-url
 home-device auth <授权码>
 ```
 
-#### 海尔设备
+### 2. 海尔设备MCP连接初始化
 
 ```bash
-# 海尔设备认证
+# 初始化MCP连接（建立SSE连接，发送initialize握手）
 home-device haier auth
 
-# 输入海尔账号和密码
+# MCP协议特点：
+# - 使用SSE长连接传输
+# - 支持自动重连（5秒间隔）
+# - 支持心跳保活（5秒ping）
 ```
 
-### 2. 验证配置
+### 3. 验证配置
 
 ```bash
 home-device doctor
@@ -119,6 +123,37 @@ home-device --yes control <device_id> turn_on
 home-device haier control <device_id> turn_on
 home-device haier control <device_id> set_brightness --value 50
 ```
+
+### 海尔设备管理 (MCP协议)
+
+海尔设备采用 MCP (Model Context Protocol) 协议，通过 SSE 传输层与海尔U+平台通信。
+
+```bash
+# 初始化MCP连接（建立SSE连接，发送initialize握手）
+home-device haier auth
+
+# 列出可用的MCP工具
+home-device haier tools
+
+# 查看海尔设备列表（通过MCP getDeviceList工具）
+home-device haier list
+
+# 获取设备状态（通过MCP getDeviceStatus工具）
+home-device haier status <device_id>
+
+# 控制设备（通过MCP工具调用）
+home-device haier control <device_id> turn_on      # 调用lampControl
+home-device haier control <device_id> turn_off     # 调用lampControl
+home-device haier control <device_id> set_brightness --value 50  # 调用lampControl
+```
+
+**MCP协议特点**：
+- 使用SSE长连接传输，支持自动重连（5秒间隔）
+- 支持心跳保活（5秒ping）
+- 动态工具发现（`haier tools`查看可用工具）
+- 无需用户名密码认证，通过initialize握手完成
+
+**注意**：海尔设备暂不支持场景功能（MCP协议限制）
 
 ### 智能音箱控制
 

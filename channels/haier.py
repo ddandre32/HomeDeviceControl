@@ -1,6 +1,6 @@
 """
 海尔智能家居渠道
-封装 haier SDK，提供原子操作
+基于 MCP (Model Context Protocol) 协议封装，提供原子操作
 """
 
 import sys
@@ -16,8 +16,8 @@ from .base import SmartHomeChannel, ChannelStatus, Device, Scene
 # 导入 haier SDK
 try:
     from haier import HaierClient
-    from haier.types import HaierDeviceInfo, HaierSceneInfo
-    from haier.error import HaierError, HaierAuthError
+    from haier.types import HaierDeviceInfo, HaierSceneInfo, MCPToolInfo
+    from haier.error import HaierError, HaierAuthError, HaierMCPError
     HAIER_AVAILABLE = True
 except ImportError as e:
     HAIER_AVAILABLE = False
@@ -27,7 +27,8 @@ class HaierChannel(SmartHomeChannel):
     """
     海尔智能家居渠道
 
-    基于 Haier SDK 封装，只提供原子操作
+    基于 MCP 协议封装，通过 SSE 传输层与海尔U+平台通信
+    支持自动重连和工具发现
     """
 
     name = "haier"
@@ -60,19 +61,16 @@ class HaierChannel(SmartHomeChannel):
         "WaterImmersionSensor": "water_sensor",
     }
 
-    # 动作映射 (标准动作 -> 海尔命令)
+    # 动作映射 (标准动作 -> MCP工具名称)
     ACTION_MAP = {
-        "turn_on": "openDevice",
-        "turn_off": "closeDevice",
-        "set_brightness": "setBrightness",
-        "set_temperature": "setTemperature",
-        "set_mode": "setMode",
-        "set_color_temperature": "setColorTemperature",
-        "set_openness": "setOpenness",
-        "increase_brightness": "increaseBrightness",
-        "decrease_brightness": "decreaseBrightness",
-        "increase_temperature": "increaseTemperature",
-        "decrease_temperature": "decreaseTemperature",
+        "turn_on": "lampControl",
+        "turn_off": "lampControl",
+        "set_brightness": "lampControl",
+        "set_temperature": "airConditionerControl",
+        "curtain_control": "curtainControl",
+        "lamp_control": "lampControl",
+        "get_device_list": "getDeviceList",
+        "get_device_status": "getDeviceStatus",
     }
 
     def __init__(self, timeout: int = 30):
@@ -80,14 +78,13 @@ class HaierChannel(SmartHomeChannel):
         self._client = None
 
     def _get_client(self) -> Optional[HaierClient]:
-        """获取 Haier 客户端"""
+        """获取 Haier MCP 客户端"""
         if not HAIER_AVAILABLE:
             return None
         if self._client is None:
             try:
                 # 从配置文件读取
                 import json
-                import os
                 config_path = os.path.expanduser("~/.haier/config.json")
 
                 base_url = None
@@ -105,7 +102,7 @@ class HaierChannel(SmartHomeChannel):
                     timeout=self.timeout,
                 )
             except Exception as e:
-                print(f"初始化海尔客户端失败: {e}")
+                print(f"初始化海尔MCP客户端失败: {e}")
                 return None
         return self._client
 
@@ -153,25 +150,25 @@ class HaierChannel(SmartHomeChannel):
                     name=self.name,
                     available=False,
                     configured=False,
-                    message="无法初始化 haier 客户端",
-                    suggestion="检查配置文件 ~/.haier/config.json"
+                    message="无法初始化 haier MCP 客户端",
+                    suggestion="检查网络连接和MCP服务器配置"
                 )
 
-            # 检查是否已认证
+            # 检查MCP连接状态
             if client.is_authenticated():
                 return ChannelStatus(
                     name=self.name,
                     available=True,
                     configured=True,
-                    message="可用"
+                    message="MCP连接可用"
                 )
             else:
                 return ChannelStatus(
                     name=self.name,
                     available=True,
                     configured=False,
-                    message="未认证",
-                    suggestion="运行: home-device haier auth 完成认证"
+                    message="MCP未连接",
+                    suggestion="运行: home-device haier auth 完成MCP初始化"
                 )
         except Exception as e:
             return ChannelStatus(
@@ -179,7 +176,7 @@ class HaierChannel(SmartHomeChannel):
                 available=False,
                 configured=False,
                 message=f"检查失败: {str(e)[:50]}",
-                suggestion="检查网络连接或重新认证"
+                suggestion="检查MCP服务器连接或重新初始化"
             )
 
     def configure(self) -> bool:
@@ -189,10 +186,11 @@ class HaierChannel(SmartHomeChannel):
         Returns:
             bool: 配置是否成功
         """
-        print("海尔智能家居配置")
-        print("==================")
+        print("海尔智能家居MCP配置")
+        print("====================")
         print("1. 运行: home-device haier auth")
-        print("2. 输入海尔账号和密码完成认证")
+        print("2. MCP客户端将自动初始化SSE连接")
+        print("3. 支持自动重连和心跳保活")
         print("")
         return False
 
@@ -233,7 +231,6 @@ class HaierChannel(SmartHomeChannel):
 
         try:
             result = self._run_async(_get_devices())
-            # 检查是否是错误返回
             if isinstance(result, dict) and "error" in result:
                 print(f"获取设备列表失败: {result['error']}")
                 return []
@@ -279,13 +276,10 @@ class HaierChannel(SmartHomeChannel):
         if not client:
             return {"success": False, "error": "client not initialized"}
 
-        # 映射标准动作到海尔命令
-        haier_command = self.ACTION_MAP.get(action, action)
-
         async def _do_control():
             """执行控制"""
             async with client:
-                result = await client.control_device(device_id, haier_command, value)
+                result = await client.control_device(device_id, action, value)
                 return result
 
         try:
@@ -307,36 +301,8 @@ class HaierChannel(SmartHomeChannel):
         Returns:
             List[Scene]: 场景列表
         """
-        if not HAIER_AVAILABLE:
-            return []
-
-        client = self._get_client()
-        if not client:
-            return []
-
-        async def _get_scenes():
-            """获取场景列表"""
-            async with client:
-                haier_scenes = await client.get_scenes()
-
-                scenes = []
-                for scene_id, info in haier_scenes.items():
-                    scene = Scene(
-                        id=scene_id,
-                        name=info.name,
-                        enabled=info.enabled,
-                    )
-                    scenes.append(scene)
-
-                return scenes
-
-        try:
-            result = self._run_async(_get_scenes())
-            if not isinstance(result, list):
-                return []
-            return result
-        except Exception:
-            return []
+        # MCP协议暂不支持场景功能
+        return []
 
     def execute_scene(self, scene_id: str) -> Dict[str, Any]:
         """
@@ -348,29 +314,8 @@ class HaierChannel(SmartHomeChannel):
         Returns:
             Dict: 执行结果
         """
-        if not HAIER_AVAILABLE:
-            return {"success": False, "error": "haier SDK not available"}
-
-        client = self._get_client()
-        if not client:
-            return {"success": False, "error": "client not initialized"}
-
-        async def _do_execute():
-            """执行场景"""
-            async with client:
-                result = await client.run_scene(scene_id)
-                return result
-
-        try:
-            result = self._run_async(_do_execute())
-            if isinstance(result, dict) and "success" in result:
-                return result
-            elif isinstance(result, dict):
-                return {"success": True, "data": result}
-            else:
-                return {"success": True, "data": result}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        # MCP协议暂不支持场景功能
+        return {"success": False, "error": "MCP协议暂不支持场景功能"}
 
     def _infer_type(self, haier_type: str) -> str:
         """

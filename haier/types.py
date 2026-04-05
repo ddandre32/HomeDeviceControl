@@ -155,3 +155,49 @@ class HaierSpec:
     description: str              # 描述
     properties: List[HaierProperty] = field(default_factory=list)
     actions: List[HaierAction] = field(default_factory=list)
+
+
+@dataclass
+class MCPToolInfo:
+    """MCP工具信息"""
+    name: str                     # 工具名称
+    description: str              # 工具描述
+    input_schema: Dict[str, Any]  # 输入参数schema
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "input_schema": self.input_schema,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "MCPToolInfo":
+        return cls(
+            name=data.get("name", ""),
+            description=data.get("description", ""),
+            input_schema=data.get("inputSchema") or data.get("input_schema", {}),
+        )
+
+
+@dataclass
+class MCPCallResult:
+    """MCP工具调用结果"""
+    is_error: bool                # 是否错误
+    content: List[Dict[str, Any]] # 返回内容
+    tool_name: str = ""           # 工具名称
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "is_error": self.is_error,
+            "content": self.content,
+            "tool_name": self.tool_name,
+        }
+
+    def get_text_content(self) -> str:
+        """获取文本内容"""
+        texts = []
+        for item in self.content:
+            if item.get("type") == "text":
+                texts.append(item.get("text", ""))
+        return "\n".join(texts)

@@ -28,6 +28,7 @@ class CLIClient:
         """获取渠道客户端"""
         if self._channel == "haier":
             from haier import HaierClient
+            # MCP客户端无需额外配置，初始化通过initialize()完成
             return HaierClient()
         else:
             return None  # 小米客户端通过原有逻辑创建
@@ -37,6 +38,9 @@ class CLIClient:
         if self._client is None:
             if self._channel == "haier":
                 self._client = self._get_channel_client()
+                # MCP客户端需要初始化SSE连接
+                if self._client:
+                    await self._client.initialize()
             else:
                 # 原有小米客户端逻辑
                 uuid = self._config.get("uuid")
@@ -173,7 +177,12 @@ class CLIClient:
     async def close(self) -> None:
         """关闭客户端"""
         if self._client:
-            await self._client.deinit()
+            if self._channel == "haier":
+                # MCP客户端使用close()方法
+                await self._client.close()
+            else:
+                # 小米客户端使用deinit()方法
+                await self._client.deinit()
             self._client = None
 
 
