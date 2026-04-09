@@ -33,10 +33,19 @@ class XiaomiChannel(SmartHomeChannel):
     name = "xiaomi"
     display_name = "小米"
     cli_command = "miot"
-    
+
+    # 已知型号的 Intelligent Speaker SIID 映射
+    # 不同音箱型号的智能语音服务 SIID 不同，基于实测结果维护
+    _SPEAKER_SIID_MAP = {
+        "xiaomi.wifispeaker.oh2p": 7,   # Xiaomi 智能音箱 Pro
+        "xiaomi.wifispeaker.l05b": 5,   # 小爱音箱 Play
+    }
+    _SPEAKER_SIID_FALLBACKS = [7, 5]    # 未知型号的尝试顺序
+
     def __init__(self, timeout: int = 30):
         self.timeout = timeout
         self._client = None
+        self._device_model_cache: Dict[str, str] = {}  # did -> model
     
     def _get_client(self) -> Optional[MIoTClient]:
         """获取 MIoT 客户端"""
@@ -188,26 +197,32 @@ class XiaomiChannel(SmartHomeChannel):
                 # 处理 MIoTDeviceInfo 对象
                 if hasattr(info, 'name'):
                     # 是 MIoTDeviceInfo 对象
+                    model = getattr(info, 'model', '')
+                    if model:
+                        self._device_model_cache[did] = model
                     device = Device(
                         id=did,
                         name=info.name,
-                        type=self._infer_type(getattr(info, 'model', '')),
+                        type=self._infer_type(model),
                         brand=self.name,
                         room=getattr(info, 'room_name', None),
                         online=getattr(info, 'online', False),
-                        model=getattr(info, 'model', None)
+                        model=model or None
                     )
                     device_list.append(device)
                 elif isinstance(info, dict):
                     # 是字典
+                    model = info.get("model", "")
+                    if model:
+                        self._device_model_cache[did] = model
                     device = Device(
                         id=did,
                         name=info.get("name", "Unknown"),
-                        type=self._infer_type(info.get("model", "")),
+                        type=self._infer_type(model),
                         brand=self.name,
                         room=info.get("room_name"),
                         online=info.get("online", False),
-                        model=info.get("model")
+                        model=model or None
                     )
                     device_list.append(device)
             return device_list
@@ -221,6 +236,13 @@ class XiaomiChannel(SmartHomeChannel):
         except Exception:
             return []
     
+    def _get_speaker_siid(self, did: str) -> Optional[int]:
+        """根据设备型号获取 Intelligent Speaker 服务的 SIID"""
+        model = self._device_model_cache.get(did)
+        if model and model in self._SPEAKER_SIID_MAP:
+            return self._SPEAKER_SIID_MAP[model]
+        return None
+
     def get_device(self, device_id: str) -> Optional[Device]:
         """
         获取设备详情
@@ -299,11 +321,26 @@ class XiaomiChannel(SmartHomeChannel):
             elif action == "speaker_get_volume":
                 vol = await client.get_prop(did, 2, 1)
                 return {"success": True, "volume": vol}
-            # 智能语音 (siid=7: Intelligent Speaker)
-            elif action == "voice_command":
-                result = await client.action(did, 7, 3, [str(value)] if value else [])
-            elif action == "execute_text_directive":
-                result = await client.action(did, 7, 4, [str(value), False] if value else [])
+            # 智能语音 (Intelligent Speaker, SIID因型号而异)
+            elif action in ("voice_command", "execute_text_directive"):
+                aiid = 3 if action == "voice_command" else 4
+                params = [str(value)] if value else []
+                if aiid == 4 and value:
+                    params = [str(value), False]
+                siid = self._get_speaker_siid(did)
+                if siid:
+                    result = await client.action(did, siid, aiid, params)
+                else:
+                    # 未知型号：依次尝试已知 SIID
+                    result = None
+                    for try_siid in self._SPEAKER_SIID_FALLBACKS:
+                        r = await client.action(did, try_siid, aiid, params)
+                        if r.get("code") == 0:
+                            self._SPEAKER_SIID_MAP[self._device_model_cache.get(did, '')] = try_siid
+                            result = r
+                            break
+                    if result is None:
+                        return {"success": False, "error": "No compatible Intelligent Speaker SIID found"}
             else:
                 return {"success": False, "error": f"Unknown action: {action}"}
             

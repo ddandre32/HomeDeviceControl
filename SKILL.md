@@ -123,8 +123,15 @@ hdc haier tools                              # 可用 MCP 工具
 
 | 服务 | SIID | 说明 |
 |------|------|------|
-| Play Control | 3 | 播放/暂停/上下首 |
-| Intelligent Speaker | 7 | 语音播报/执行语音指令/音乐播放 |
+| Play Control | 3 | 播放/暂停/上下首（所有型号一致） |
+| Intelligent Speaker | 因型号而异 | 语音播报/执行语音指令/音乐播放 |
+
+已验证型号的 Intelligent Speaker SIID：
+
+| 型号 | 设备名称 | SIID |
+|------|----------|------|
+| xiaomi.wifispeaker.oh2p | Xiaomi 智能音箱 Pro | 7 |
+| xiaomi.wifispeaker.l05b | 小爱音箱 Play | 5 |
 
 常用动作：
 
@@ -134,11 +141,11 @@ hdc haier tools                              # 可用 MCP 工具
 | 暂停 | 3/3 | `hdc miot device action <did> 3 3` | 暂停播放 |
 | 上一首 | 3/5 | `hdc miot device action <did> 3 5` | |
 | 下一首 | 3/6 | `hdc miot device action <did> 3 6` | |
-| 语音播报 | 7/3 | `hdc miot device action <did> 7 3 "你好"` | TTS朗读文字 |
-| 执行语音指令 | 7/4 | `hdc miot device action <did> 7 4 "播放周杰伦"` | 等同对小爱说话 |
+| 语音播报 | {SIID}/3 | `hdc miot device action <did> {SIID} 3 "你好"` | TTS朗读文字 |
+| 执行语音指令 | {SIID}/4 | `hdc miot device action <did> {SIID} 4 "播放周杰伦"` | 等同对小爱说话 |
 | 设置音量 | prop 2/1 | `hdc miot device prop set <did> 2 1 30` | 音量范围 5-100 |
 
-⚠️ 注意：不同型号音箱的 SIID 可能不同，以上基于 Xiaomi 智能音箱 Pro (oh2p) 实测验证。
+通过 `control_device` API 调用 `voice_command` / `execute_text_directive` 时，代码会自动根据设备型号选择正确的 SIID，未知型号会自动尝试回退。
 
 ## 命令参考
 
