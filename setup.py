@@ -28,8 +28,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "home-device=cli:main",
-            "miot=cli:main",
+            "hdc=cli.main:main",
         ],
     },
     python_requires=">=3.9",

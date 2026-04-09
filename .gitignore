@@ -48,3 +48,6 @@ test_*.py
 # Config files with sensitive data
 config.json
 .miot/
+
+# Misplaced cache directory
+~/

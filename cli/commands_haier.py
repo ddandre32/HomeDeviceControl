@@ -34,10 +34,10 @@ def haier_list(ctx, online: bool, room: Optional[str],
 
     \b
     使用示例:
-      home-device haier list                    # 列出所有海尔设备
-      home-device haier list --online           # 仅在线设备
-      home-device haier list --room 客厅        # 特定房间
-      home-device haier list --type light       # 特定类型（如灯）
+      hdc haier list                    # 列出所有海尔设备
+      hdc haier list --online           # 仅在线设备
+      hdc haier list --room 客厅        # 特定房间
+      hdc haier list --type light       # 特定类型（如灯）
     """
     config = ctx.obj["config"]
     client = CLIClient(config, channel="haier")
@@ -92,10 +92,10 @@ def haier_control(ctx, did: str, action: str, value: Optional[str], format_type:
 
     \b
     使用示例:
-      home-device haier control <did> turn_on              # 打开设备
-      home-device haier control <did> turn_off             # 关闭设备
-      home-device haier control <did> set_brightness --value 50  # 设置亮度
-      home-device haier control <did> set_temperature --value 24 # 设置温度
+      hdc haier control <did> turn_on              # 打开设备
+      hdc haier control <did> turn_off             # 关闭设备
+      hdc haier control <did> set_brightness --value 50  # 设置亮度
+      hdc haier control <did> set_temperature --value 24 # 设置温度
 
     \b
     支持的动作:
@@ -195,7 +195,7 @@ def haier_auth(ctx, format_type: Optional[str]):
 
     \b
     使用示例:
-      home-device haier auth
+      hdc haier auth
     """
     config = ctx.obj["config"]
     fmt = format_type or ctx.obj.get("format", "table")
@@ -241,7 +241,7 @@ def haier_tools(ctx, format_type: Optional[str]):
 
     \b
     使用示例:
-      home-device haier tools
+      hdc haier tools
     """
     config = ctx.obj["config"]
     fmt = format_type or ctx.obj.get("format", "table")

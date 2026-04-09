@@ -5,8 +5,8 @@ CLI客户端封装
 import asyncio
 from typing import Any, Dict, List, Optional
 
-from miot_sdk import MIoTClient
-from miot_sdk.types import MIoTDeviceInfo, MIoTManualSceneInfo
+from miot import MIoTClient
+from miot.types import MIoTDeviceInfo, MIoTManualSceneInfo
 
 from .config import CLIConfig
 
@@ -51,7 +51,7 @@ class CLIClient:
                     self._config.save()
 
                 oauth_info = self._config.get_oauth_info()
-                from miot_sdk import MIoTClient
+                from miot import MIoTClient
                 self._client = MIoTClient(
                     uuid=uuid,
                     redirect_uri=self._config.get("redirect_uri"),

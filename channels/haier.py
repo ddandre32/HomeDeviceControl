@@ -101,8 +101,7 @@ class HaierChannel(SmartHomeChannel):
                     family_id=family_id,
                     timeout=self.timeout,
                 )
-            except Exception as e:
-                print(f"初始化海尔MCP客户端失败: {e}")
+            except Exception:
                 return None
         return self._client
 
@@ -123,8 +122,6 @@ class HaierChannel(SmartHomeChannel):
             else:
                 return loop.run_until_complete(coro)
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             return {"success": False, "error": str(e)}
 
     def check(self) -> ChannelStatus:
@@ -213,7 +210,6 @@ class HaierChannel(SmartHomeChannel):
             async with client:
                 haier_devices = await client.get_devices()
 
-                # 转换为 Device 对象列表
                 device_list = []
                 for did, info in haier_devices.items():
                     device = Device(
@@ -232,13 +228,9 @@ class HaierChannel(SmartHomeChannel):
         try:
             result = self._run_async(_get_devices())
             if isinstance(result, dict) and "error" in result:
-                print(f"获取设备列表失败: {result['error']}")
                 return []
             return result
-        except Exception as e:
-            print(f"获取设备列表失败: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception:
             return []
 
     def get_device(self, device_id: str) -> Optional[Device]:

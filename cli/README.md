@@ -1,184 +1,81 @@
-# -*- coding: utf-8 -*-
-"""
-小米IoT CLI工具 - 命令行接口文档
+# Home Device Control CLI
 
 ## 安装
 
 ```bash
-pip install -e ".[cli]"
+pip install -e .
 ```
+
+安装后提供 `hdc` 命令。
 
 ## 快速开始
 
-### 1. 初始化配置
-
 ```bash
-# 查看系统状态
-miot system status
+# 认证
+hdc miot system oauth-url          # 小米: 获取 OAuth URL
+hdc miot system auth <授权码>       # 小米: 完成认证
+hdc haier auth                     # 海尔: 初始化 MCP 连接
 
-# 获取OAuth授权URL
-miot system oauth-url
+# 查看设备
+hdc device list                    # 所有品牌
+hdc device list --brand xiaomi     # 仅小米
+
+# 控制设备（使用品牌专属命令）
+hdc miot device prop set <did> 2 1 true   # 小米: 开灯
+hdc miot device action <did> 3 3          # 小米: 音箱暂停
+hdc haier control <did> turn_on           # 海尔: 开灯
 ```
 
-访问输出的URL，登录小米账号并授权，然后获取授权码。
+## 命令结构
 
-### 2. 完成认证
-
-```bash
-miot system auth <授权码>
+```
+hdc
+├── device                       统一设备查询（跨品牌）
+│   └── list [--brand] [--online] [--type] [--room]
+├── miot                         小米专属
+│   ├── device
+│   │   ├── list / get / spec
+│   │   ├── prop get / set
+│   │   ├── action
+│   │   └── batch
+│   ├── scene
+│   │   ├── list / get / search / run
+│   └── system
+│       ├── status / oauth-url / auth
+│       ├── config / notify
+│       └── web
+└── haier                        海尔专属
+    ├── auth / list / control
+    ├── status / tools
 ```
 
-### 3. 使用设备
+## 全局选项
 
-```bash
-# 列出所有设备
-miot device list
-
-# 仅列出在线设备
-miot device list --online
-
-# 按类型筛选（如灯具）
-miot device list --type light
-
-# 获取设备详情
-miot device get <did>
-
-# 获取设备SPEC
-miot device spec <did>
-```
-
-### 4. 控制设备
-
-```bash
-# 获取属性值
-miot device prop get <did> <siid> <piid>
-
-# 设置属性值（开关）
-miot device prop set <did> 2 1 true
-miot device prop set <did> 2 1 false
-
-# 设置属性值（亮度0-100）
-miot device prop set <did> 2 2 80
-
-# 执行动作
-miot device action <did> <siid> <aiid>
-```
-
-### 5. 批量控制
-
-```bash
-# 从文件批量操作
-miot device batch --file ops.json
-
-# 从stdin批量操作
-echo '[
-  {"type":"set_prop","did":"123","siid":2,"piid":1,"value":true},
-  {"type":"set_prop","did":"456","siid":2,"piid":1,"value":true}
-]' | miot device batch
-```
-
-### 6. 场景管理
-
-```bash
-# 列出场景
-miot scene list
-
-# 搜索场景
-miot scene search "回家"
-
-# 执行场景
-miot scene run <scene_id>
-
-# 批量执行场景
-miot scene run <scene_id1> --batch <scene_id2>,<scene_id3>
-```
-
-### 7. 系统管理
-
-```bash
-# 发送通知
-miot system notify "测试消息"
-
-# 配置管理
-miot system config cloud_server cn
-miot system config redirect_uri "http://localhost:8000/callback"
-```
+| 选项 | 说明 |
+|------|------|
+| `--json` | JSON 输出 |
+| `--format [json\|yaml\|table\|human]` | 输出格式 |
+| `--config <path>` | 配置文件路径 |
+| `-v, --verbose` | 详细输出 |
 
 ## 输出格式
 
-支持三种输出格式：
-
-- `json` (默认): JSON格式，适合程序解析
-- `yaml`: YAML格式，便于阅读
-- `table`: 表格格式，便于命令行查看
-
-示例：
-```bash
-miot device list --format table
-miot scene list -f yaml
-```
+| 格式 | 说明 | 默认场景 |
+|------|------|---------|
+| `json` | 结构化 JSON | 非 TTY（管道/脚本） |
+| `table` | 表格对齐 | TTY（终端交互） |
+| `yaml` | YAML 格式 | 手动指定 |
+| `human` | 简化键值对 | 手动指定 |
 
 ## 配置文件
 
-配置文件默认保存在 `~/.miot/config.json`：
+默认路径：`~/.miot/config.json`
 
-```json
-{
-  "uuid": "your-uuid",
-  "redirect_uri": "http://localhost:8000/callback",
-  "cache_path": "~/.miot/cache",
-  "cloud_server": "cn",
-  "oauth_info": {
-    "access_token": "...",
-    "refresh_token": "...",
-    "expires_ts": 1234567890
-  }
-}
-```
+## 环境变量
 
-## 快捷命令
-
-```bash
-miot devices          # 等同于 miot device list
-miot scenes           # 等同于 miot scene list
-miot status           # 等同于 miot system status
-```
-
-## 完整命令列表
-
-### 全局选项
-- `--config`: 配置文件路径
-- `--format`: 输出格式 (json/yaml/table)
-- `-v, --verbose`: 详细输出
-
-### 设备命令 (miot device)
-- `list`: 列出设备
-  - `--refresh`: 刷新列表
-  - `--online`: 仅在线设备
-  - `--room`: 按房间筛选
-  - `--home`: 按家庭筛选
-  - `--type`: 按类型筛选
-- `get <did>`: 获取设备详情
-- `spec <did>`: 获取设备SPEC
-- `prop get <did> <siid> <piid>`: 获取属性
-- `prop set <did> <siid> <piid> <value>`: 设置属性
-- `action <did> <siid> <aiid> [in_list...]`: 执行动作
-- `batch`: 批量控制
-  - `--file`: 操作文件路径
-
-### 场景命令 (miot scene)
-- `list`: 列出场景
-  - `--refresh`: 刷新列表
-  - `--home`: 按家庭筛选
-- `get <scene_id>`: 获取场景详情
-- `search <keyword>`: 搜索场景
-- `run <scene_id>`: 执行场景
-  - `--batch`: 批量执行
-
-### 系统命令 (miot system)
-- `status`: 系统状态
-- `oauth-url`: 获取OAuth URL
-- `auth <code>`: 完成认证
-- `notify <content>`: 发送通知
-- `config <key> [value]`: 配置管理
-  - `--unset`: 删除配置项
+| 变量 | 说明 |
+|------|------|
+| `HDC_CONFIG_PATH` | 配置文件路径 |
+| `MIOT_CLOUD_SERVER` | 云服务器 (cn/sg/us) |
+| `MIOT_FORMAT` | 默认输出格式 |
+| `MIOT_ACCESS_TOKEN` | 访问令牌（CI 使用） |

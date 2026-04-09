@@ -70,22 +70,19 @@ class XiaomiChannel(SmartHomeChannel):
                     cloud_server=cloud_server,
                     oauth_info=oauth_info
                 )
-            except Exception as e:
-                print(f"初始化客户端失败: {e}")
+            except Exception:
                 return None
         return self._client
     
     def _run_async(self, coro):
         """运行异步代码"""
         try:
-            # 获取或创建事件循环
             try:
                 loop = asyncio.get_event_loop()
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
             
-            # 如果循环正在运行，使用 run_coroutine_threadsafe
             if loop.is_running():
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -94,8 +91,6 @@ class XiaomiChannel(SmartHomeChannel):
             else:
                 return loop.run_until_complete(coro)
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             return {"success": False, "error": str(e)}
     
     def check(self) -> ChannelStatus:
@@ -221,14 +216,8 @@ class XiaomiChannel(SmartHomeChannel):
             result = self._run_async(_get_devices())
             # 检查是否是错误返回
             if isinstance(result, dict) and "error" in result:
-                print(f"获取设备列表失败: {result['error']}")
                 return []
             return result
-        except Exception as e:
-            print(f"获取设备列表失败: {e}")
-            import traceback
-            traceback.print_exc()
-            return []
         except Exception:
             return []
     
@@ -269,35 +258,43 @@ class XiaomiChannel(SmartHomeChannel):
         
         async def _do_control():
             """执行控制"""
-            # 初始化客户端
             await client.init()
             
-            # 动作映射
+            # 解析子设备: "parentDid.sXX" → did=parentDid, siid_offset=XX
+            did = device_id
+            siid_offset = 0
+            if '.' in device_id:
+                parts = device_id.rsplit('.', 1)
+                suffix = parts[1]
+                if suffix.startswith('s') and suffix[1:].isdigit():
+                    did = parts[0]
+                    siid_offset = int(suffix[1:])
+            
+            # 动作映射 (基于 MIoT SPEC 定义)
             if action == "turn_on":
-                # 灯的开关: service_id=2, property_id=1 (on)
-                result = await client.set_prop(device_id, 2, 1, True)
+                siid = siid_offset if siid_offset else 2
+                result = await client.set_prop(did, siid, 1, True)
             elif action == "turn_off":
-                # 灯的开关: service_id=2, property_id=1 (on)
-                result = await client.set_prop(device_id, 2, 1, False)
+                siid = siid_offset if siid_offset else 2
+                result = await client.set_prop(did, siid, 1, False)
             elif action == "set_brightness":
-                # 亮度: service_id=2, property_id=2 (brightness)
-                result = await client.set_prop(device_id, 2, 2, int(value))
-            elif action == "set_temperature":
-                # 温度: service_id=2, property_id=2 (temperature)
-                result = await client.set_prop(device_id, 2, 2, int(value))
+                result = await client.set_prop(did, 2, 2, int(value))
+            elif action == "set_color_temperature":
+                result = await client.set_prop(did, 2, 3, int(value))
+            elif action == "speaker_play":
+                result = await client.action(did, 3, 2, [])
             elif action == "speaker_pause":
-                # 音箱暂停: service_id=3, action_id=2
-                result = await client.action(device_id, 3, 2, [])
-            elif action == "speaker_next":
-                # 音箱下一首: service_id=3, action_id=3
-                result = await client.action(device_id, 3, 3, [])
+                result = await client.action(did, 3, 3, [])
+            elif action == "speaker_stop":
+                result = await client.action(did, 3, 4, [])
             elif action == "speaker_previous":
-                # 音箱上一首: service_id=3, action_id=4
-                result = await client.action(device_id, 3, 4, [])
+                result = await client.action(did, 3, 5, [])
+            elif action == "speaker_next":
+                result = await client.action(did, 3, 6, [])
             elif action == "voice_command":
-                # 语音指令: service_id=7, action_id=3
-                # 注意：这会让音箱播报文字，不是执行指令
-                result = await client.action(device_id, 7, 3, [str(value)] if value else [])
+                result = await client.action(did, 5, 3, [str(value)] if value else [])
+            elif action == "execute_text_directive":
+                result = await client.action(did, 5, 4, [str(value)] if value else [])
             else:
                 return {"success": False, "error": f"Unknown action: {action}"}
             
@@ -392,10 +389,11 @@ class XiaomiChannel(SmartHomeChannel):
             "light": ["light", "lamp", "灯"],
             "switch": ["switch", "开关"],
             "curtain": ["curtain", "窗帘"],
-            "air_conditioner": ["air", "空调", "ac"],
+            "camera": ["camera", "摄像头", "摄像机"],
+            "air_conditioner": ["aircondition", "空调"],
             "purifier": ["purifier", "净化器"],
-            "speaker": ["speaker", "音箱"],
-            "camera": ["camera", "摄像头"],
+            "speaker": ["speaker", "音箱", "wifispeaker"],
+            "control_panel": ["controller", "中控"],
         }
         
         for device_type, keywords in type_keywords.items():

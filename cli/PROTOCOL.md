@@ -36,10 +36,10 @@ else:
 
 ```bash
 # 成功输出到stdout，可被管道处理
-miot device list --json | jq '.data[] | select(.online)'
+hdc miot device list --json | jq '.data[] | select(.online)'
 
 # 错误输出到stderr，不影响管道
-miot device list 2>/dev/null || echo "出错但管道继续"
+hdc miot device list 2>/dev/null || echo "出错但管道继续"
 
 # 从stdin读取（批量操作）
 echo '[{"did":"xxx","action":"turn_on"}]' | miot device batch
@@ -51,8 +51,8 @@ echo '[{"did":"xxx","action":"turn_on"}]' | miot device batch
 
 ```bash
 # 多次执行结果一致
-miot device get <did>    # 总是返回当前状态
-miot scene list          # 总是返回当前场景列表
+hdc miot device get <did>    # 总是返回当前状态
+hdc miot scene list          # 总是返回当前场景列表
 ```
 
 ---
@@ -78,7 +78,7 @@ miot scene list          # 总是返回当前场景列表
   "error": {
     "code": "DEVICE_NOT_FOUND",
     "message": "设备未找到",
-    "suggestion": "运行 'miot device list' 查看可用设备ID"
+    "suggestion": "运行 'hdc miot device list' 查看可用设备ID"
   },
   "timestamp": "2026-03-31T12:00:00Z"
 }
@@ -95,9 +95,9 @@ miot scene list          # 总是返回当前场景列表
 
 **显式指定格式：**
 ```bash
-miot --format json device list    # 强制JSON
-miot --json device list           # 快捷方式
-miot device list --format table   # 子命令指定
+hdc --format json device list    # 强制JSON
+hdc --json miot device list           # 快捷方式
+hdc miot device list --format table   # 子命令指定
 ```
 
 ---
@@ -132,7 +132,7 @@ miot device list --format table   # 子命令指定
 
 ```bash
 # 捕获错误码
-miot device get invalid_did --json > result.json 2>error.json
+hdc miot device get invalid_did --json > result.json 2>error.json
 if [ $? -ne 0 ]; then
     error_code=$(cat error.json | jq -r '.error.code')
     echo "错误码: $error_code"
@@ -159,7 +159,7 @@ export MIOT_ACCESS_TOKEN="sk-xxxxx"
 export MIOT_FORMAT="json"
 export MIOT_CLOUD_SERVER="cn"
 
-miot device list --json | jq '.data[].name'
+hdc miot device list --json | jq '.data[].name'
 ```
 
 ---
@@ -169,43 +169,45 @@ miot device list --json | jq '.data[].name'
 ### 5.1 内容发现
 
 ```bash
-# 设备列表
-miot device list [--online] [--room <id>] [--type <model>]
+# 设备列表（支持多品牌）
+hdc device list [--brand xiaomi|haier|all] [--online] [--room <id>] [--type <model>]
 
 # 场景列表
-miot scene list [--home <id>]
+hdc miot scene list [--home <id>]
 
 # 场景搜索
-miot scene search <keyword>
+hdc miot scene search <keyword>
 ```
 
 ### 5.2 内容获取
 
 ```bash
 # 获取设备详情
-miot device get <did>
+hdc miot device get <did>
 
 # 获取设备SPEC
-miot device spec <did>
+hdc miot device spec <did>
 
 # 获取单个场景
-miot scene get <scene_id>
+hdc miot scene get <scene_id>
 ```
 
 ### 5.3 内容处理
 
 ```bash
-# 获取属性
-miot device prop get <did> <siid> <piid>
+# 小米属性控制
+hdc miot device prop get <did> <siid> <piid>
+hdc miot device prop set <did> <siid> <piid> <value>
 
-# 设置属性
-miot device prop set <did> <siid> <piid> <value>
+# 小米动作执行
+hdc miot device action <did> <siid> <aiid> [args...]
 
-# 执行动作
-miot device action <did> <siid> <aiid> [args...]
+# 海尔设备控制
+hdc haier control <did> turn_on
+hdc haier control <did> set_brightness --value 80
 
 # 执行场景
-miot scene run <scene_id>
+hdc miot scene run <scene_id>
 ```
 
 ### 5.4 内容导出
@@ -213,9 +215,9 @@ miot scene run <scene_id>
 所有命令支持 `--format` / `--json` 选项：
 
 ```bash
-miot device list --json > devices.json
-miot device spec <did> --format yaml > spec.yaml
-miot scene list --json | jq '.data[]'
+hdc miot device list --json > devices.json
+hdc miot device spec <did> --format yaml > spec.yaml
+hdc miot scene list --json | jq '.data[]'
 ```
 
 ---
@@ -226,34 +228,34 @@ miot scene list --json | jq '.data[]'
 
 ```bash
 # 1. 获取OAuth授权URL
-miot system oauth-url
+hdc miot system oauth-url
 # 输出: {"oauth_url": "https://...", "success": true}
 
 # 2. 完成认证（使用授权码）
-miot system auth <code>
+hdc miot system auth <code>
 
 # 3. 列出设备（TTY默认table格式）
-miot device list
+hdc miot device list
 
 # 4. 控制设备
-miot device prop set <did> 2 1 true    # 开灯
-miot device prop set <did> 2 1 false   # 关灯
+hdc miot device prop set <did> 2 1 true    # 开灯
+hdc miot device prop set <did> 2 1 false   # 关灯
 
 # 5. 执行场景
-miot scene run <scene_id>
+hdc miot scene run <scene_id>
 ```
 
 ### 6.2 管道使用
 
 ```bash
 # 获取所有在线设备的名称
-miot device list --online --json | jq -r '.data[].name'
+hdc miot device list --online --json | jq -r '.data[].name'
 
 # 获取特定类型的设备
-miot device list --json | jq '.data[] | select(.model | contains("light"))'
+hdc miot device list --json | jq '.data[] | select(.model | contains("light"))'
 
 # 批量获取设备详情
-miot device list --json | jq -r '.data[].did' | xargs -I {} miot device get {} --json
+hdc miot device list --json | jq -r '.data[].did' | xargs -I {} miot device get {} --json
 
 # 批量控制设备（从文件）
 cat operations.json | miot device batch
@@ -282,7 +284,7 @@ LIGHTS=$(miot device list --online --json | jq -r '.data[] | select(.model | con
 # 批量关闭
 for did in $LIGHTS; do
     echo "关闭设备: $did"
-    miot device prop set "$did" 2 1 false --json > /dev/null
+    hdc miot device prop set "$did" 2 1 false --json > /dev/null
 done
 
 echo "所有灯具已关闭"
@@ -353,13 +355,13 @@ except Exception as e:
 
 ```bash
 # 获取配置
-miot system config cloud_server
+hdc miot system config cloud_server
 
 # 设置配置
-miot system config cloud_server sg
+hdc miot system config cloud_server sg
 
 # 删除配置项
-miot system config format --unset
+hdc miot system config format --unset
 ```
 
 ---
@@ -410,28 +412,28 @@ steps:
 
 ```bash
 # 查看详细输出
-miot -v device list
+hdc miot -v device list
 
 # 查看原始JSON
-miot device list --json
+hdc miot device list --json
 
 # 格式化输出
-miot device list --json | jq '.'
+hdc miot device list --json | jq '.'
 
 # 查看错误详情
-miot device get invalid --json 2>&1 | jq '.'
+hdc miot device get invalid --json 2>&1 | jq '.'
 ```
 
 ### 9.3 性能优化
 
 ```bash
 # 使用缓存（避免重复请求）
-miot device list              # 使用缓存
-miot device list --refresh    # 强制刷新
+hdc miot device list              # 使用缓存
+hdc miot device list --refresh    # 强制刷新
 
 # 筛选减少数据传输
-miot device list --online     # 仅在线设备
-miot device list --room xxx   # 仅特定房间
+hdc miot device list --online     # 仅在线设备
+hdc miot device list --room xxx   # 仅特定房间
 ```
 
 ---
@@ -444,5 +446,5 @@ miot device list --room xxx   # 仅特定房间
 
 ---
 
-*文档版本: 1.0.0*
-*更新日期: 2026-03-31*
+*文档版本: 2.0.0*
+*更新日期: 2026-04-08*

@@ -76,13 +76,13 @@ def system_auth(ctx, code: str, format_type: Optional[str]):
 
     \b
     认证流程:
-      miot system oauth-url          # 获取OAuth URL
+      hdc miot system oauth-url          # 获取OAuth URL
       # 浏览器打开URL完成授权
-      miot system auth <code>        # 使用授权码完成认证
+      hdc miot system auth <code>        # 使用授权码完成认证
 
     \b
     Agent使用:
-      miot system oauth-url --json | jq -r '.data.oauth_url'  # 获取URL给用户在浏览器打开
+      hdc miot system oauth-url --json | jq -r '.data.oauth_url'  # 获取URL给用户在浏览器打开
     """
     config = ctx.obj["config"]
     client = CLIClient(config)
@@ -117,15 +117,15 @@ def system_notify(ctx, content: str, format_type: Optional[str]):
 
     \b
     使用示例:
-      miot system notify "设备离线告警"
+      hdc miot system notify "设备离线告警"
 
     \b
     延迟通知:
       # 30分钟后发送（使用at命令）
-      echo "miot system notify '会议提醒'" | at now + 30 minutes
+      echo "hdc miot system notify '会议提醒'" | at now + 30 minutes
 
       # 定时发送（cron）
-      0 8 * * * /usr/bin/miot system notify "早安"
+      0 8 * * * /usr/bin/hdc miot system notify "早安"
     """
     config = ctx.obj["config"]
     client = CLIClient(config)
@@ -203,9 +203,9 @@ def system_web(ctx, host: str, port: int, format_type: Optional[str]):
 
     \b
     使用示例:
-      miot system web              # 启动 Web 服务器 (默认端口 8080)
-      miot system web --port 3000  # 使用自定义端口
-      miot system web --host 127.0.0.1  # 仅本地访问
+      hdc miot system web              # 启动 Web 服务器 (默认端口 8080)
+      hdc miot system web --port 3000  # 使用自定义端口
+      hdc miot system web --host 127.0.0.1  # 仅本地访问
 
     \b
     功能特性:

@@ -487,6 +487,7 @@ class SmartHomeWebServer:
                             "did": device.id,
                             "name": device.name,
                             "model": device.model or "unknown",
+                            "type": device.type,
                             "online": device.online,
                             "home_id": home_id,
                             "home_name": "我的家",

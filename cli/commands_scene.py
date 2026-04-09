@@ -29,15 +29,15 @@ def scene_list(ctx, refresh: bool, home: Optional[str], room: Optional[str], ena
 
     \b
     使用示例:
-      miot scene list                    # 列出所有场景
-      miot scene list --home <home_id>   # 特定家庭
-      miot scene list --room <room_id>   # 特定房间
-      miot scene list --enabled          # 仅启用的场景
+      hdc miot scene list                    # 列出所有场景
+      hdc miot scene list --home <home_id>   # 特定家庭
+      hdc miot scene list --room <room_id>   # 特定房间
+      hdc miot scene list --enabled          # 仅启用的场景
 
     \b
     Agent使用:
-      miot --json scene list | jq -r '.data[0].scene_id'                    # 获取首个场景ID
-      miot --json scene list | jq '.data[] | select(.scene_name | contains("回家"))'  # 搜索场景
+      hdc --json miot scene list | jq -r '.data[0].scene_id'                    # 获取首个场景ID
+      hdc --json miot scene list | jq '.data[] | select(.scene_name | contains("回家"))'  # 搜索场景
     """
     config = ctx.obj["config"]
     client = CLIClient(config)
@@ -172,13 +172,13 @@ def scene_run(ctx, scene_id: str, batch: Optional[str], format_type: Optional[st
 
     \b
     使用示例:
-      miot scene run <scene_id>                           # 执行单个场景
-      miot scene run <scene_id> --batch "s1,s2,s3"        # 批量执行
+      hdc miot scene run <scene_id>                           # 执行单个场景
+      hdc miot scene run <scene_id> --batch "s1,s2,s3"        # 批量执行
 
     \b
     Agent使用:
-      SCENE=$(miot --json scene list | jq -r '.data[0].scene_id')
-      miot scene run $SCENE --json
+      SCENE=$(hdc --json miot scene list | jq -r '.data[0].scene_id')
+      hdc miot scene run $SCENE --json
     """
     config = ctx.obj["config"]
     client = CLIClient(config)

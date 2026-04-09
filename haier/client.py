@@ -154,7 +154,8 @@ class HaierClient:
 
             try:
                 # 先测试直接IP连接
-                print(f"正在连接MCP服务器: {self.MCP_SERVER_IP}...")
+                import sys
+                print(f"正在连接MCP服务器: {self.MCP_SERVER_IP}...", file=sys.stderr)
 
                 # 发送initialize请求 (使用IP + Host头)
                 init_result = await self._send_request(
