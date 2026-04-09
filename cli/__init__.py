@@ -21,7 +21,7 @@
 - haier: 海尔U+设备
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 # 导出核心类型和函数
 from .formatter import (

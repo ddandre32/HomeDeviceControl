@@ -47,6 +47,7 @@ def cli(ctx, config_path: Optional[str], format_type: Optional[str],
     小米专属 (hdc miot):
       hdc miot device prop set <did> 2 1 true  开灯
       hdc miot device action <did> 3 3         音箱暂停
+      hdc miot device action <did> 7 4 "播放音乐"  语音指令
       hdc miot scene list / run <id>           场景管理
       hdc miot system auth / status            系统管理
 

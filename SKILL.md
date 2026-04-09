@@ -37,7 +37,7 @@ metadata:
 ❌ **不适用场景**:
 - 设备初次配对和配网（需使用米家App/海尔智家App）
 - 创建或修改智能场景
-- 直接设置音箱音量（只读）
+- 直接设置音箱音量（部分旧型号只读）
 - 海尔场景执行（MCP协议暂不支持）
 
 ## 安装
@@ -88,7 +88,8 @@ hdc miot device prop set <did> 2 3 4000      # 色温 4000K
 
 # 执行动作
 hdc miot device action <did> 3 3             # 音箱暂停
-hdc miot device action <did> 5 3 "你好"      # 语音播报
+hdc miot device action <did> 7 3 "你好"      # 语音播报(TTS)
+hdc miot device action <did> 7 4 "播放周杰伦"  # 执行语音指令(等同对小爱说话)
 
 # 批量控制
 echo '[{"type":"set_prop","did":"x","siid":2,"piid":1,"value":true}]' | hdc miot device batch
@@ -118,14 +119,26 @@ hdc haier tools                              # 可用 MCP 工具
 
 ### 智能音箱控制
 
-⚠️ 音箱有两种控制方式：
+音箱通过 MIoT SPEC 协议控制，主要涉及两个服务：
 
-| 方式 | 命令 | 效果 |
+| 服务 | SIID | 说明 |
 |------|------|------|
-| 动作控制 | `hdc miot device action <did> 3 3` | ✅ 真正暂停 |
-| 语音播报 | `hdc miot device action <did> 5 3 "文字"` | ⚠️ 音箱说出文字 |
+| Play Control | 3 | 播放/暂停/上下首 |
+| Intelligent Speaker | 7 | 语音播报/执行语音指令/音乐播放 |
 
-常用动作 SIID/AIID：暂停=3/3, 播放=3/2, 下一首=3/6, 上一首=3/5, 语音播报=5/3
+常用动作：
+
+| 动作 | SIID/AIID | 命令示例 | 说明 |
+|------|-----------|----------|------|
+| 播放 | 3/2 | `hdc miot device action <did> 3 2` | 继续播放 |
+| 暂停 | 3/3 | `hdc miot device action <did> 3 3` | 暂停播放 |
+| 上一首 | 3/5 | `hdc miot device action <did> 3 5` | |
+| 下一首 | 3/6 | `hdc miot device action <did> 3 6` | |
+| 语音播报 | 7/3 | `hdc miot device action <did> 7 3 "你好"` | TTS朗读文字 |
+| 执行语音指令 | 7/4 | `hdc miot device action <did> 7 4 "播放周杰伦"` | 等同对小爱说话 |
+| 设置音量 | prop 2/1 | `hdc miot device prop set <did> 2 1 30` | 音量范围 5-100 |
+
+⚠️ 注意：不同型号音箱的 SIID 可能不同，以上基于 Xiaomi 智能音箱 Pro (oh2p) 实测验证。
 
 ## 命令参考
 
@@ -149,7 +162,9 @@ hdc haier tools                              # 可用 MCP 工具
 | `set_color_temperature` | 色温 (Kelvin) | 小米 |
 | `set_temperature` | 温度 (摄氏度) | 通用 |
 | `speaker_play/pause/stop` | 音箱播放控制 | 小米 |
-| `voice_command` | 语音播报文字 | 小米 |
+| `speaker_set_volume` | 设置音量 (5-100) | 小米 |
+| `voice_command` | 语音播报文字(TTS) | 小米 |
+| `execute_text_directive` | 执行语音指令(等同对小爱说话) | 小米 |
 | `curtain_control` | 窗帘控制 (0-100) | 海尔 |
 
 ## Python API
@@ -169,6 +184,7 @@ result = haier.control_device("haier_light_001", "set_brightness", 50)
 
 - OAuth 令牌有效期 30 天，过期需重新授权
 - 设备列表本地缓存 5 分钟，`--refresh` 强制刷新
-- 音箱音量只读，无法通过 API 设置
-- `voice_command` 让音箱播报文字，不是执行指令
+- 音箱音量可通过 `speaker_set_volume` 或 `prop set <did> 2 1 <值>` 设置 (范围 5-100)
+- `voice_command` (siid=7/aiid=3) 让音箱播报文字(TTS)，不是执行指令
+- `execute_text_directive` (siid=7/aiid=4) 等同对小爱说话，可触发音乐播放等
 - 海尔场景功能暂不支持（MCP 协议限制）

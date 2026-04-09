@@ -255,7 +255,8 @@ def miot_action(ctx, did, siid, aiid, in_list, format_type):
     参数: DID SIID AIID [参数...]
     示例:
       hdc miot device action <did> 3 3              音箱暂停
-      hdc miot device action <did> 5 3 "你好"       语音播报
+      hdc miot device action <did> 7 3 "你好"       语音播报(TTS)
+      hdc miot device action <did> 7 4 "播放周杰伦"  执行语音指令
     """
     config = ctx.obj["config"]
     client = CLIClient(config)
