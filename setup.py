@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="home-device-control",
-    version="2.0.0",
+    version="2.1.0",
     description="控制智能家居设备的原子工具，支持小米、海尔等多品牌",
     author="OpenClaw",
     author_email="",

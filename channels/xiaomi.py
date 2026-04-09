@@ -271,6 +271,7 @@ class XiaomiChannel(SmartHomeChannel):
                     siid_offset = int(suffix[1:])
             
             # 动作映射 (基于 MIoT SPEC 定义)
+            # 灯光控制
             if action == "turn_on":
                 siid = siid_offset if siid_offset else 2
                 result = await client.set_prop(did, siid, 1, True)
@@ -281,20 +282,28 @@ class XiaomiChannel(SmartHomeChannel):
                 result = await client.set_prop(did, 2, 2, int(value))
             elif action == "set_color_temperature":
                 result = await client.set_prop(did, 2, 3, int(value))
+            # 播放控制 (siid=3: Play Control)
             elif action == "speaker_play":
                 result = await client.action(did, 3, 2, [])
             elif action == "speaker_pause":
                 result = await client.action(did, 3, 3, [])
             elif action == "speaker_stop":
-                result = await client.action(did, 3, 4, [])
+                result = await client.action(did, 3, 3, [])
             elif action == "speaker_previous":
                 result = await client.action(did, 3, 5, [])
             elif action == "speaker_next":
                 result = await client.action(did, 3, 6, [])
+            # 音箱属性 (siid=2: Speaker)
+            elif action == "speaker_set_volume":
+                result = await client.set_prop(did, 2, 1, int(value))
+            elif action == "speaker_get_volume":
+                vol = await client.get_prop(did, 2, 1)
+                return {"success": True, "volume": vol}
+            # 智能语音 (siid=7: Intelligent Speaker)
             elif action == "voice_command":
-                result = await client.action(did, 5, 3, [str(value)] if value else [])
+                result = await client.action(did, 7, 3, [str(value)] if value else [])
             elif action == "execute_text_directive":
-                result = await client.action(did, 5, 4, [str(value)] if value else [])
+                result = await client.action(did, 7, 4, [str(value), False] if value else [])
             else:
                 return {"success": False, "error": f"Unknown action: {action}"}
             
